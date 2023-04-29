@@ -10,6 +10,8 @@ import "random" for Random
 
 var WIDTH=240
 var HEIGHT=136
+var MAP_W=30
+var MAP_H=17
 var COLOR_BG=5
 var COLOR_KEY=9
 var MUSSPLASH=0
@@ -656,11 +658,7 @@ class GameObject {
 
 class MainState is State {
     construct new() {
-        _conveyorBelts=[]
-        _conveyorBelts.add(ConveyorBelt.new(0,0,RIGHT))
-        _conveyorBelts.add(ConveyorBelt.new(1,0,DOWN))
-        _conveyorBelts.add(ConveyorBelt.new(1,1,LEFT))
-        _conveyorBelts.add(ConveyorBelt.new(0,1,UP))
+        _map=GameMap.new()
         _jobs = [
             Job.new(1,1,JOB_SPEED,0,{WIN:1}),
             Job.new(1,2,JOB_SPEED,0,{LINUX:1}),
@@ -689,11 +687,9 @@ class MainState is State {
             _deathticks=60
         }
 
+        _map.update()
         _jobs.each {|job|
             job.update()
-        }
-        _conveyorBelts.each {|conveyorBelt|
-            conveyorBelt.update()
         }
     }
 
@@ -707,9 +703,7 @@ class MainState is State {
     }
 
     draw() {
-        _conveyorBelts.each {|conveyorBelt|
-            conveyorBelt.draw()
-        }
+        _map.draw()
         _jobs.each {|job|
             job.draw()
         }
@@ -741,6 +735,54 @@ class ConveyorBelt is GameObject {
 
     update() {
         _ticks=_ticks+1
+    }
+}
+
+class GameMap {
+    
+    construct new() {
+        _conveyorBelts=[]
+        for(i in 1..MAP_H) {
+            _conveyorBelts.add(List.filled(MAP_W, null))
+        }
+        addConveyorBelt(0,0,RIGHT)
+        addConveyorBelt(1,0,DOWN)
+        addConveyorBelt(1,1,LEFT)
+        addConveyorBelt(0,1,UP)
+    }
+
+    addConveyorBelt(x,y,dir) {
+        _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
+    }
+
+    update(){
+        _mouse=TIC.mouse()
+        _mouseX=_mouse[0]
+        _mouseY=_mouse[1]
+        _mouseClick=_mouse[2]
+
+        if(_mouseClick) {
+            addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+        }
+
+        _conveyorBelts.each {|conveyorBeltColumn|
+            conveyorBeltColumn.each {|conveyorBelt|
+                if(conveyorBelt!=null) conveyorBelt.update()
+            }
+        }
+    }
+
+    draw() {
+        var x=(_mouseX/16).floor*16
+        var y=(_mouseY/16).floor*16
+
+        TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
+
+        _conveyorBelts.each {|conveyorBeltColumn|
+            conveyorBeltColumn.each {|conveyorBelt|
+                if(conveyorBelt!=null) conveyorBelt.draw()
+            }
+        }
     }
 }
 
@@ -955,6 +997,10 @@ class Job is GameObject {
 // 129:fffffffffdfdfdfddfdfdfdffdfdfdfddfdfdfdffdfdfdfd0000000044444444
 // 130:fffff099fdfdf099dfdfd099fdfdf099dfdfd099fdfdf0990000049944444499
 // 144:9900000000000000000000000000000000000000000000000000000000000000
+// 238:3339999939999999399999999999999999999999999999999999999999999999
+// 239:9999933399999993999999939999999999999999999999999999999999999999
+// 254:9999999999999999999999999999999999999999399999993999999933399999
+// 255:9999999999999999999999999999999999999999999999939999999399999333
 // </SPRITES>
 
 // <MAP>
