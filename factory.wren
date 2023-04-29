@@ -719,6 +719,46 @@ class Game is TIC{
 	}
 }
 
+class Request {
+    construct new() {
+
+    }
+}
+
+class Job {
+    construct new() {
+        _tasksDone =[]
+    }
+
+    addTask(task){
+        _tasksDone.add(task)
+    }
+
+    containsTask=(task){
+        _foundTask = false
+        for (currentTask in _tasksDone) {
+            if (currentTask == task) {
+                _foundTask = true
+                break
+            }
+        }
+        return _foundTask
+    }
+}
+
+class Task {
+    construct new() {
+
+    }
+}
+
+class Windows is Task {
+    construct new() {
+
+    }
+}
+
+
 // <TILES>
 // 128:0212222002222222902222219902222299022222902222220211222202122220
 // 129:0212222022222220122222092222209922222099222222092222212002222220
