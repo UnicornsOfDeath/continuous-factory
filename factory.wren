@@ -10,8 +10,6 @@ import "random" for Random
 
 var WIDTH=240
 var HEIGHT=136
-var MAP_W=30
-var MAP_H=17
 var COLOR_BG=5
 var MUSSPLASH=0
 var MUSGAME=1
@@ -31,31 +29,8 @@ var SFXWRONG=7
 var SFXTXT=8
 var SFXEXPLODE=9
 var SFXBORK=10
-var PLAYER_DX=10
-var TXT_X=120
-var TXT_Y=10
-var TXT_W=WIDTH-TXT_X-10
-var TXT_H=HEIGHT-TXT_Y
-var EVENT_TICK=600
-var WIN_X=12900
-var CROSSING_GAP=200
-var STRESS_TICK=120
-var SHAKING_TICK=30
 var RANDOM=Random.new()
-var DEBUG_HITBOX=false
-var ENABLE_PHONE=true
-var ENABLE_COLLISIONS=true
-var AUTO_DRIVE=false
-var SHOW_DOG=false
-var XING_X=7980
-var XING_TICKS=720
-var DUCK_SPRITE=268
-var DUCKLING_SPRITE=302
-var XING_LINGS=12
-var XING_BORK_TICKS=[4455,4500,4555,4600]
-
 // VRAM ADDRESSES
-var MOUSE_CURSOR=0x3FFB
 var PALETTE_MAP=0x3FF0
 
 // BUTTONS
@@ -68,8 +43,6 @@ var BTN_A=4
 var BTN_B=5
 var BTN_X=6
 var BTN_Y=7
-
-var CHEAT_CODE=[BTN_UP,BTN_UP,BTN_DOWN,BTN_DOWN,BTN_LEFT,BTN_RIGHT,BTN_LEFT,BTN_RIGHT,BTN_B,BTN_A]
 
 class ChunkyFont {
 
@@ -103,8 +76,8 @@ class ChunkyFont {
         __WIDTH=8
         __HEIGHT=8
 
-        __COLOR1=10
-        __COLOR2=9
+        __COLOR1=1
+        __COLOR2=2
 
         __LETTERS={
             "a":[
@@ -534,11 +507,11 @@ class SplashState is SkipState {
 		super(10)
 		_len=250
 		_texts=[
-			SplashStateText.new(0,"^56u"),
-			SplashStateText.new(1,"^56u^deni"),
-			SplashStateText.new(2,"^56u^deni^56c^deorns"),
-			SplashStateText.new(3,"^56u^deni^56c^deorns\n^56o^def"),
-			SplashStateText.new(4,"^56u^deni^56c^deorns\n^56o^def^21DEATH"),
+			SplashStateText.new(0,"^abu"),
+			SplashStateText.new(1,"^abu^cdni"),
+			SplashStateText.new(2,"^abu^cdni^abc^cdorns"),
+			SplashStateText.new(3,"^abu^cdni^abc^cdorns\n^abo^cdf"),
+			SplashStateText.new(4,"^abu^cdni^abc^cdorns\n^abo^cdf^76DEATH"),
         ]
     }
 
@@ -602,9 +575,9 @@ class TitleState is SkipState {
     draw() {
         super.draw()
         TIC.cls(COLOR_BG)
-        TIC.print("Press Z or X to Start",30,100,12+(tt/20)%2)
+        TIC.print("Press Z or X to Start",30,100,2+(tt/20)%2)
         var cf=ChunkyFont.new(30,20)
-        cf.s("^43Continuous\n^56Factory")
+        cf.s("^12Continuous\n^5eFactory")
     }
 }
 
