@@ -713,6 +713,8 @@ class MainState is State {
         _jobs.each {|job|
             job.draw()
         }
+        _tt=(tt/60).floor
+        TIC.print("Time:%(_tt)",WIDTH-30,1,0,false,1,true)
     }
 }
 
