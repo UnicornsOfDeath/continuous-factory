@@ -60,6 +60,10 @@ var WIN=274
 var LINUX=275
 var HAMMER=276
 
+// JOB
+
+var JOB_SPEED=0.2
+
 class ChunkyFont {
 
     static init_() {
@@ -658,13 +662,13 @@ class MainState is State {
         _conveyorBelts.add(ConveyorBelt.new(1,1,LEFT))
         _conveyorBelts.add(ConveyorBelt.new(0,1,UP))
         _jobs = [
-            Job.new(1,1,1,0,{WIN:1}),
-            Job.new(1,2,1,0,{LINUX:1}),
-            Job.new(1,3,1,0,{APPLE:1}),
-            Job.new(1,4,1,0,{DISK:1}),
-            Job.new(1,5,1,0,{DISK:1}),
-            Job.new(1,6,1,0,{WIN:2}),
-            Job.new(1,7,1,0,{WIN:2,APPLE:3}),
+            Job.new(1,1,JOB_SPEED,0,{WIN:1}),
+            Job.new(1,2,JOB_SPEED,0,{LINUX:1}),
+            Job.new(1,3,JOB_SPEED,0,{APPLE:1}),
+            Job.new(1,4,JOB_SPEED,0,{DISK:1}),
+            Job.new(1,5,JOB_SPEED,0,{DISK:1}),
+            Job.new(1,6,JOB_SPEED,0,{WIN:2}),
+            Job.new(1,7,JOB_SPEED,0,{WIN:2,APPLE:3}),
         ]
     }
     winstate { _winstate }
@@ -829,7 +833,15 @@ class Job is GameObject {
     }
 
     draw() {
-        TIC.spr(256,x,y,COLOR_KEY,1,0,0,2,2)
+        TIC.spr(352,x-4,y-4,COLOR_KEY,1,0,0,3,3)
+        _y=y
+        for (task in _tasks) {
+            TIC.spr(task.key,x,_y,COLOR_KEY)
+            if(task.value>1) {
+                TIC.print("x%(task.value)",x+9,_y+2,0,false,1,true)
+            }
+            _y=_y+8
+        }
     }
 
     update() {
@@ -893,13 +905,9 @@ class Job is GameObject {
 // </TILES>
 
 // <SPRITES>
-// 000:9ccccc99cfffffcccff33333cfffffffcfffffffcfffffffcfffffffcfffffff
-// 001:99999999ccccccc93333fffcfffffffcfffffff0fffffff0fffffff0fffffff0
 // 002:9000009905225509052255090555550905333509053335099000009999999999
 // 003:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 004:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
-// 016:cfffffffcffffffdcfffffdf0dfdfdfdcfdfdfdf0dfdfdfd9000000099444444
-// 017:fffffff0fdfdfdf0dfdfdfd0fdfdfdf0dfdfdfd0fdfdfdf00000000444444444
 // 018:9990000909007800900778800907ef80900eeff0090e00f09000990099999999
 // 019:900000990000000903303309031013090fffff0903ddd3090333330999999999
 // 020:99999999990099999020999902100000011cccc0901000000111099990009999
@@ -935,6 +943,16 @@ class Job is GameObject {
 // 085:0122012101220121012201210000000122226260222227202222626000000009
 // 086:1012201210122012101220121000000006262222027222220626222290000000
 // 087:2012201120122011201220110000000122222620222267602222262000000009
+// 096:9999999999999999999ccccc99cfffff99cfffff99cfffff99cfffff99cfffff
+// 097:9999999999999999ccc99999fffc9999ffffccccf3333333ffffffffffffffff
+// 098:99999999999999999999999999999999ccccc999fffffc99fffff099fffff099
+// 112:99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff
+// 113:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+// 114:fffff099fffff099fffff099fffff099fffff099fffff099fffff099fffff099
+// 128:99cfffff99cfffff99cfffff990dfdfd99cfdfdf990dfdfd9990000099994444
+// 129:fffffffffdfdfdfddfdfdfdffdfdfdfddfdfdfdffdfdfdfd0000000044444444
+// 130:fffff099fdfdf099dfdfd099fdfdf099dfdfd099fdfdf0990000049944444499
+// 144:9900000000000000000000000000000000000000000000000000000000000000
 // </SPRITES>
 
 // <MAP>
