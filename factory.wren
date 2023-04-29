@@ -580,52 +580,31 @@ class SplashState is SkipState {
     }
 }
 
-class TitleState is State {
+class TitleState is SkipState {
 	construct new() {
-        _nextStateCounter=0
+		super(40)
     }
-
-    isSwitchingToNextState{_nextStateCounter>0}
 
 	reset() {
 		super.reset()
 		TIC.music(MUSTITLE,-1,-1,false)
-        _nextStateCounter=0
     }
 
 	finish() {
 		TIC.sfx(SFXNEXT)
-        _nextStateCounter=40
         TIC.music() // stop
-    }
-
-    next() {
-        if(_nextStateCounter==1){
-			nextstate.reset()
-			return nextstate
-        }
-		return super()
     }
 
     update(){
         super.update()
-        if(!isSwitchingToNextState){
-            if(false /* start game */){
-                finish()
-            }
-        }
-        if(isSwitchingToNextState){
-            _nextStateCounter=_nextStateCounter-1
-        }
     }
 
     draw() {
         super.draw()
         TIC.cls(COLOR_BG)
-        TIC.print(((tt/40).floor%2)==0?">>> START GAME":">>> DRIVE HERE",30,100,12+(tt/20)%2)
-        TIC.spr(510,20,64+((tt/20).floor%4)*10,0)
+        TIC.print("Press Z or X to Start",30,100,12+(tt/20)%2)
         var cf=ChunkyFont.new(30,20)
-        cf.s("^43ROAD\n^56TXTR")
+        cf.s("^43Continuous\n^56Factory")
     }
 }
 
