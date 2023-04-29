@@ -11,6 +11,7 @@ import "random" for Random
 var WIDTH=240
 var HEIGHT=136
 var COLOR_BG=5
+var COLOR_KEY=9
 var MUSSPLASH=0
 var MUSGAME=1
 var MUSTITLE=2
@@ -49,6 +50,15 @@ var BTN_A=4
 var BTN_B=5
 var BTN_X=6
 var BTN_Y=7
+
+// TASK IDS
+
+var DISK=258
+var APPLE=259
+var GLASS=260
+var WIN=274
+var LINUX=275
+var HAMMER=276
 
 class ChunkyFont {
 
@@ -377,7 +387,7 @@ class ChunkyFont {
 				var letter=row[i]
 				if (letter!=" ") {
 					hasletter=true
-					TIC.spr(__SYM_MAP[letter]+128,x,y,9)
+					TIC.spr(__SYM_MAP[letter]+128,x,y,COLOR_KEY)
                 }
 				if (hasletter) {
 					rowwidth=rowwidth+1
@@ -546,7 +556,7 @@ class SplashState is SkipState {
     }
 
 	drawface(x,y) {
-        TIC.spr(204,x,y,9,1,0,0,4,4)
+        TIC.spr(204,x,y,COLOR_KEY,1,0,0,4,4)
     }
 
 	next() {
@@ -647,6 +657,15 @@ class MainState is State {
         _conveyorBelts.add(ConveyorBelt.new(1,0,DOWN))
         _conveyorBelts.add(ConveyorBelt.new(1,1,LEFT))
         _conveyorBelts.add(ConveyorBelt.new(0,1,UP))
+        _jobs = [
+            Job.new(1,1,1,0,{WIN:1}),
+            Job.new(1,2,1,0,{LINUX:1}),
+            Job.new(1,3,1,0,{APPLE:1}),
+            Job.new(1,4,1,0,{DISK:1}),
+            Job.new(1,5,1,0,{DISK:1}),
+            Job.new(1,6,1,0,{WIN:2}),
+            Job.new(1,7,1,0,{WIN:2,APPLE:3}),
+        ]
     }
     winstate { _winstate }
     winstate=(value) {
@@ -666,6 +685,9 @@ class MainState is State {
             _deathticks=60
         }
 
+        _jobs.each {|job|
+            job.update()
+        }
         _conveyorBelts.each {|conveyorBelt|
             conveyorBelt.update()
         }
@@ -684,6 +706,9 @@ class MainState is State {
         _conveyorBelts.each {|conveyorBelt|
             conveyorBelt.draw()
         }
+        _jobs.each {|job|
+            job.draw()
+        }
     }
 }
 
@@ -698,13 +723,13 @@ class ConveyorBelt is GameObject {
     draw() {
         var frame=(_ticks/15).floor%4
         if (_dir==DOWN) {
-            TIC.spr(288+frame*2,x,y,0,1,0,0,2,2)
+            TIC.spr(288+frame*2,x,y,COLOR_KEY,1,0,0,2,2)
         } else if (_dir==UP) {
-            TIC.spr(294-frame*2,x,y,0,1,0,0,2,2)
+            TIC.spr(294-frame*2,x,y,COLOR_KEY,1,0,0,2,2)
         } else if (_dir==LEFT) {
-            TIC.spr(326-frame*2,x,y,0,1,0,0,2,2)
+            TIC.spr(326-frame*2,x,y,COLOR_KEY,1,0,0,2,2)
         } else if (_dir==RIGHT) {
-            TIC.spr(320+frame*2,x,y,0,1,0,0,2,2)
+            TIC.spr(320+frame*2,x,y,COLOR_KEY,1,0,0,2,2)
         }
     }
 
@@ -781,7 +806,7 @@ class Game is TIC{
 	}
 	
 	TIC(){
-        TIC.cls(1)
+        TIC.cls(COLOR_BG)
 
         _state.update()
         _state.draw()
@@ -795,39 +820,34 @@ class Request {
     }
 }
 
-class Job {
-    construct new() {
-        _tasksDone =[]
+class Job is GameObject {
+    construct new(x,y,dx,dy,tasks) {
+        super(x*16,y*16,Rect.new(0,0,16,16))
+        _dx=dx
+        _dy=dy
+        _tasks=tasks
     }
 
-    addTask(task){
-        _tasksDone.add(task)
+    draw() {
+        TIC.spr(256,x,y,COLOR_KEY,1,0,0,2,2)
+    }
+
+    update() {
+        // todo
+        x=x+_dx
+        y=y+_dy
+    }
+
+    doTask(task){
+        if (_tasks[task] > 0) {
+            _tasks[task]=_tasks[task]-1
+        }
     }
 
     containsTask=(task){
-        _foundTask = false
-        for (currentTask in _tasksDone) {
-            if (currentTask == task) {
-                _foundTask = true
-                break
-            }
-        }
-        return _foundTask
+        return _tasks[task] && _tasks[task] > 0
     }
 }
-
-class Task {
-    construct new() {
-
-    }
-}
-
-class Windows is Task {
-    construct new() {
-
-    }
-}
-
 
 // <TILES>
 // 128:0212222002222222902222219902222299022222902222220211222202122220
