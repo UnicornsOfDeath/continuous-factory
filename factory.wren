@@ -30,6 +30,12 @@ var SFXTXT=8
 var SFXEXPLODE=9
 var SFXBORK=10
 var RANDOM=Random.new()
+
+var UP=0
+var DOWN=1
+var LEFT=2
+var RIGHT=3
+
 // VRAM ADDRESSES
 var PALETTE_MAP=0x3FF0
 
@@ -581,8 +587,66 @@ class TitleState is SkipState {
     }
 }
 
+class Rect {
+    x { _x }
+    y { _y }
+    width { _width }
+    height { _height }
+    left { _x }
+    right { _x + width }
+    top { _y }
+    bottom { _y + height }
+
+    construct new(x,y,width,height) {
+        _x=x
+        _y=y
+        _width=width
+        _height=height
+    }
+
+    intersects(other) {
+        return !(right < other.left || left > other.right || top > other.bottom || bottom < other.top)
+    }
+
+    translate(x,y) {
+        return Rect.new(_x+x,_y+y,_width,_height)
+    }
+}
+
+class GameObject {
+    x { _x }
+    y { _y }
+    hitbox { _hitbox }
+    x=(value){ _x=value }
+    y=(value){ _y=value }
+
+    construct new(x,y) {
+        _x=x
+        _y=y
+    }
+
+    construct new(x,y,hitbox) {
+        _x=x
+        _y=y
+        _hitbox=hitbox
+    }
+
+    update(){}
+
+    draw() {}
+
+    intersects(other) {
+        return _hitbox.translate(x,y).intersects(other.hitbox.translate(other.x,other.y))
+    }
+}
+
 class MainState is State {
     construct new() {
+        _conveyorBelts=[]
+        _conveyorBelts.add(ConveyorBelt.new(0,0,RIGHT))
+        _conveyorBelts.add(ConveyorBelt.new(1,0,DOWN))
+        _conveyorBelts.add(ConveyorBelt.new(1,1,LEFT))
+        _conveyorBelts.add(ConveyorBelt.new(0,1,UP))
     }
     winstate { _winstate }
     winstate=(value) {
@@ -601,6 +665,10 @@ class MainState is State {
             TIC.music()
             _deathticks=60
         }
+
+        _conveyorBelts.each {|conveyorBelt|
+            conveyorBelt.update()
+        }
     }
 
     next() {
@@ -613,6 +681,35 @@ class MainState is State {
     }
 
     draw() {
+        _conveyorBelts.each {|conveyorBelt|
+            conveyorBelt.draw()
+        }
+    }
+}
+
+class ConveyorBelt is GameObject {
+    
+    construct new(x,y,dir) {
+        super(x*16,y*16,Rect.new(0,0,16,16))
+        _dir=dir
+        _ticks=0
+    }
+
+    draw() {
+        var frame=(_ticks/15).floor%4
+        if (_dir==DOWN) {
+            TIC.spr(288+frame*2,x,y,0,1,0,0,2,2)
+        } else if (_dir==UP) {
+            TIC.spr(294-frame*2,x,y,0,1,0,0,2,2)
+        } else if (_dir==LEFT) {
+            TIC.spr(326-frame*2,x,y,0,1,0,0,2,2)
+        } else if (_dir==RIGHT) {
+            TIC.spr(320+frame*2,x,y,0,1,0,0,2,2)
+        }
+    }
+
+    update() {
+        _ticks=_ticks+1
     }
 }
 
