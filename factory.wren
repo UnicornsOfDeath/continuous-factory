@@ -902,7 +902,9 @@ class GameMap {
                 // No more jobs
                 break
             }
-            spawnJobs.add(Job.new(0,0,0.1,0,tasks))
+            var job = Job.new(0,0,0.1,0,tasks)
+            job.moveRight(5)
+            spawnJobs.add(job)
         }
         for(x in 0..MAP_W/2) {
             for(y in 0..MAP_H/2){
@@ -956,6 +958,7 @@ class GameMap {
         }
 
         _jobs.each { |job|
+
             job.update()
         }
 
@@ -1032,6 +1035,8 @@ class Job is GameObject {
         _dx=dx
         _dy=dy
         _tasks=tasks
+        _ticks=0
+        _justMoved=true
     }
 
     draw() {
@@ -1047,10 +1052,43 @@ class Job is GameObject {
     }
 
     update() {
-        // todo
-        //_ticks=_ticks+1
-        x=x+_dx
-        y=y+_dy
+        _ticks=_ticks-1
+        if (_ticks == 0) {
+            x=x+_dx
+            y=y+_dy
+            _justMoved = true
+        }
+    }
+
+    moveRight(timeTaken) {
+        moved(timeTaken)
+        _dx = 16
+        _dy = 0
+    }
+
+    moveLeft(timeTaken) {
+        moved(timeTaken)
+        _dx = -16
+        _dy = 0
+    }
+
+    moveDown(timeTaken) {
+        moved(timeTaken)
+        _dx = 0
+        _dy = 16
+    }
+
+    moveUp(timeTaken) {
+        moved(timeTaken)
+        _dx = 0
+        _dy = -16
+    }
+
+    moved(timeTaken) {
+        if (_justMoved) {
+            _ticks = timeTaken
+            _justMoved = false
+        }
     }
 
     doTask(task){
