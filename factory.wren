@@ -841,6 +841,12 @@ class DeathState is SkipState {
         super.update()
     }
 
+    next() {
+        finish()
+        nextstate.reset()
+        return nextstate
+    }
+
 	draw() {
 		super.draw()
 		//TIC.cls(COLOR_BG)
@@ -1162,7 +1168,7 @@ class Game is TIC{
         titleState.nextstate = mainState
         mainState.nextstate = deathState
         mainState.winstate = winState
-        deathState.nextstate = titleState
+        deathState.nextstate = mainState
         winState.nextstate = mainState
         winState.winstate = splashState
         _state=splashState
