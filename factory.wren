@@ -733,10 +733,12 @@ class GameObject {
 
 class MainState is State {
     construct new() {
-        _map=GameMap.new(LEVEL)
+        _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
         _mouse=TIC.mouse()
         _startbtn=Button.new(90,1,50,9,"START",3,8,9)
+        _failed=false
+        _deathticks=60
     }
     winstate { _winstate }
     winstate=(value) {
@@ -745,7 +747,7 @@ class MainState is State {
 
     reset() {
         super.reset()
-        _map=GameMap.new(LEVEL)
+        _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
         // TODO: reset jobs
 		TIC.music(MUSGAME,-1,-1,true)
@@ -772,9 +774,10 @@ class MainState is State {
             }
         }
 
-        if (false/* lose */){
-            TIC.music()
-            _deathticks=60
+        if (_failed){
+            if (_deathticks>0) {
+                _deathticks=_deathticks-1
+            }
         }
 
         _map.update()
@@ -786,7 +789,18 @@ class MainState is State {
             winstate.reset()
             return winstate
         }
+        if (_failed && _deathticks==1) {
+            finish()
+            nextstate.reset()
+            return nextstate
+        }
 		return super()
+    }
+
+    failState() {
+        _buildPhase=true
+        _map.stop()
+        _failed = true
     }
 
     draw() {
@@ -828,9 +842,9 @@ class DeathState is SkipState {
 
 	draw() {
 		super.draw()
-		TIC.cls(COLOR_BG)
-		TIC.print("Totalled!", 50, 50, 3)
-		TIC.print("Press any key to restart", 40, 100, 12)
+		//TIC.cls(COLOR_BG)
+		//TIC.print("Totalled!", 50, 50, 3)
+		//TIC.print("Press any key to restart", 40, 100, 12)
     }
 }
 
@@ -964,10 +978,11 @@ class Factory is GameObject {
 
 class GameMap {
     
-    construct new(i) {
+    construct new(i, killStateFunction) {
         _started=false
         _conveyorBelts=[]
         _jobs=[]
+        _killStateFunction=killStateFunction
         for(i in 1..MAP_H) {
             _conveyorBelts.add(List.filled(MAP_W, null))
         }
@@ -1023,6 +1038,14 @@ class GameMap {
         _started=true
     }
 
+    stop() {
+        _started=false
+        resetJobs()
+    }
+
+    resetJobs() {
+    }
+
     addConveyorBelt(x,y,dir) {
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
     }
@@ -1061,6 +1084,8 @@ class GameMap {
                 job.moveDown(CONVEYOR_TICKS)
             }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
                 //_factories.add(Factory.new(x,y,tileId))
+            }else {
+                _killStateFunction.call()
             }
 
             job.update()
