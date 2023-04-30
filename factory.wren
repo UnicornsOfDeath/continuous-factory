@@ -908,6 +908,7 @@ class GameMap {
                 }
             }
         }
+        _mouse=TIC.mouse()
     }
 
     addJob(x,y,job) {
@@ -919,6 +920,7 @@ class GameMap {
     }
 
     update(){
+        var mousePrev=_mouse
         _mouse=TIC.mouse()
         _mouseX=_mouse[0]
         _mouseY=_mouse[1]
@@ -927,8 +929,9 @@ class GameMap {
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
 
-        if(_mouseClick) {
+        if(_mouseClick&&mousePrev[2]!=true) {
             addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+            TIC.sfx(SFXNEXT)
         }
 
         _conveyorBelts.each {|conveyorBeltColumn|
@@ -1320,7 +1323,7 @@ class Job is GameObject {
 
 // <SFX>
 // 000:02000200020002001200320042004200520052007200720092009200a200a200c200d200e200e200f200e200e200e200e200e200e200e200e200e200470000000000
-// 001:030033708300c300d300e300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300255000000200
+// 001:08f83800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800680000000000
 // 002:06000600060006000600160026002600360046006600760086009600a600d600f600f600f600f600f600f600f600f600f600f600f600f600f600f600105000000000
 // 003:04073402640f840ea40dd40ce40cf40bf408f408f408f408f408f408f408f408f408f408f408f408f408f408f40af409f40af409f40af400f400f400a00000000000
 // 004:8367335703451355136333514301530f630e730d830c930b930aa30aa30ab309c308c308d308d308d308e308e308e308f308f308f308f308f308f308400000000600
