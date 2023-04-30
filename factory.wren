@@ -862,6 +862,21 @@ class OutTile is GameObject {
     }
 }
 
+class Factory is GameObject {
+    construct new(x,y,task) {
+        super(x*16,y*16,Rect.new(0,0,16,16))
+        _task=task
+    }
+
+    draw() {
+        TIC.spr(262,x,y,COLOR_KEY,1,0,0,2,2)
+        TIC.spr(_task,x+4,y+5,COLOR_KEY)
+    }
+
+    update() {
+    }
+}
+
 class GameMap {
     
     construct new(i) {
@@ -869,6 +884,7 @@ class GameMap {
         for(i in 1..MAP_H) {
             _conveyorBelts.add(List.filled(MAP_W, null))
         }
+        _factories=[]
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
         for(x in 0..MAP_W) {
@@ -886,18 +902,8 @@ class GameMap {
                     addConveyorBelt(x,y,UP)
                 }else if(_tileid==CONV_D){
                     addConveyorBelt(x,y,DOWN)
-                }else if(_tileid==DISK){
-                    // TODO
-                }else if(_tileid==APPLE){
-                    // TODO
-                }else if(_tileid==GLASS){
-                    // TODO
-                }else if(_tileid==WIN){
-                    // TODO
-                }else if(_tileid==LINUX){
-                    // TODO
-                }else if(_tileid==HAMMER){
-                    // TODO
+                }else if(_tileid==DISK||_tileid==APPLE||_tileid==GLASS||_tileid==WIN||_tileid==LINUX||_tileid==HAMMER){
+                    _factories.add(Factory.new(x,y,_tileid))
                 }
             }
         }
@@ -922,6 +928,9 @@ class GameMap {
                 if(conveyorBelt!=null) conveyorBelt.update()
             }
         }
+        _factories.each {|factory|
+            factory.update()
+        }
         _inTile.update()
         _outTile.update()
     }
@@ -936,6 +945,9 @@ class GameMap {
             conveyorBeltColumn.each {|conveyorBelt|
                 if(conveyorBelt!=null) conveyorBelt.draw()
             }
+        }
+        _factories.each {|factory|
+            factory.draw()
         }
         _inTile.draw()
         _outTile.draw()
@@ -1023,7 +1035,7 @@ class Job is GameObject {
 // 032:9000009905225509052255090555550905333509053335099000009999999999
 // 033:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 034:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
-// 048:9990000909007800900778800907ef80900eeff0090e00f09000990099999999
+// 048:990000999007800900778809907ef80900eeff0990e00f090009900999999999
 // 049:900000990000000903303309031013090fffff0903ddd3090333330999999999
 // 050:99999999990099999020999902100000011cccc0901000000111099990009999
 // 128:0212222002222222902222219902222299022222902222220211222202122220
@@ -1075,12 +1087,16 @@ class Job is GameObject {
 // 003:4444449999995549444995545554995499554994499554945499549455495494
 // 004:4449999945994444499455559945599994559944945994559459455994594599
 // 005:9999944444449954555549949995549944995549554995499554954999549549
+// 006:9900000090333333033333330222222202011111021eeeee021eeeee021eeeee
+// 007:0000000033333310333331102222221011111210eeee3210eeee3210eeee3210
 // 016:4594594545945994459455994599455545599444945599999945555599944444
 // 017:5495495449954954995549545554995444499554999955495555549944444999
 // 018:4945945549459945494559944994559945994555455994449455999999444444
 // 019:5549549454995494499554949955499455549954444995549999554944444499
 // 020:9459459994594559945994559455994499455999499455554599444444499999
 // 021:9954954995549549554995494499554999955499555549944444995499999444
+// 022:021eeeee021eeeee021eeeee021eeeee021eeeee021333330222222200000000
+// 023:eeee3210eeee3210eeee3210eeee3210eeee3210333332102222220900000099
 // 032:9000000001111111011111110000000002222222022222220111111100000000
 // 033:0000000911111110111111100000000022222220222222201111111000000000
 // 034:9000000001111111022222220111111100000000022222220222222201111111
