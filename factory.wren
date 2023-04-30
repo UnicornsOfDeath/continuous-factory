@@ -835,6 +835,9 @@ class MainState is State {
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
 		TIC.music(MUSGAME,-1,-1,true)
+		_startbtn=LabelButton.new(90,1,50,9,"START",3,8,9)
+		_failed=false
+        _deathticks=60
     }
 
     update() {
@@ -858,13 +861,13 @@ class MainState is State {
                 _mouseClick=_mouse[2]
                 if(!_mouseClick&&mousePrev[2]==true) {
                     if(_toolbar.buttonClicked()==CONV_U) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP, CONV_U)
                     } else if(_toolbar.buttonClicked()==CONV_D) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, DOWN)
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, DOWN, CONV_D)
                     } else if(_toolbar.buttonClicked()==CONV_L) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, LEFT)
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, LEFT, CONV_L)
                     } else if(_toolbar.buttonClicked()==CONV_R) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, RIGHT)
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, RIGHT, CONV_R)
                     }
                     TIC.sfx(SFXNEXT)
                 }
@@ -1093,14 +1096,12 @@ class GameMap {
             _conveyorBelts.add(List.filled(MAP_W, null))
         }
         _factories=[]
-        var xstart=(LEVEL%8)*MAP_W
-        var ystart=(LEVEL/8).floor
         // Load jobs to spawn
         _spawnJobs=[]
         for(x in 0..MAP_W){
             var tasks={}
             for(y in MAP_H-1..0){
-                var tileId=TIC.mget(xstart+x,ystart+y)
+                var tileId=getTileId(x,y)
                 if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
                     if(tasks[tileId]==null){
                         tasks[tileId]=0
@@ -1122,19 +1123,20 @@ class GameMap {
         _jobsDone=0
         for(x in 0..MAP_W/2) {
             for(y in 0..MAP_H/2){
-                var tileId=TIC.mget(xstart+x,ystart+y)
+                var tileId=getTileId(x,y)
                 if(tileId==IN_TILE){
                     _inTile=InTile.new(x,y,_spawnJobs)
                 }else if(tileId==OUT_TILE){
                     _outTile=OutTile.new(x,y)
                 }else if(tileId==CONV_R){
-                    addConveyorBelt(x,y,RIGHT)
+                    addConveyorBelt(x,y,RIGHT,tileId)
                 }else if(tileId==CONV_L){
-                    addConveyorBelt(x,y,LEFT)
+                    addConveyorBelt(x,y,LEFT,tileId)
                 }else if(tileId==CONV_U){
-                    addConveyorBelt(x,y,UP)
+                    System.print(tileId)
+                    addConveyorBelt(x,y,UP,tileId)
                 }else if(tileId==CONV_D){
-                    addConveyorBelt(x,y,DOWN)
+                    addConveyorBelt(x,y,DOWN,tileId)
                 }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
                     _factories.add(Factory.new(x,y,tileId))
                 }
@@ -1158,8 +1160,9 @@ class GameMap {
     resetJobs() {
     }
 
-    addConveyorBelt(x,y,dir) {
+    addConveyorBelt(x,y,dir,tileId) {
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
+        TIC.mset(x,y,tileId)
     }
 
     hasNoJobAt(x,y){
@@ -1170,6 +1173,12 @@ class GameMap {
             }
         }
         return result
+    }
+
+    getTileId(x,y) {
+         var xstart=(LEVEL%8)*MAP_W
+         var ystart=(LEVEL/8).floor
+        return TIC.mget(xstart+x,ystart+y)
     }
 
     update(){
