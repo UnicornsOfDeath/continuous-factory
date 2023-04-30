@@ -83,7 +83,7 @@ var HAMMER_GATE=85
 var JOB_SPAWN_TICKS=120
 
 var CONVEYOR_TICKS=60
-var JOB_TICKS=240
+var JOB_TICKS=120
 
 var GOLD_TIMES = {
                    0:  28,
@@ -1171,7 +1171,7 @@ class ConveyorBelt is GameObject {
     }
 
     draw() {
-        var frame=(_ticks/15).floor%4
+        var frame=(_ticks/8).floor%4
         if (_dir==DOWN) {
             TIC.spr(288+frame*2,x,y,COLOR_KEY,1,0,0,2,2)
         } else if (_dir==UP) {
@@ -1372,6 +1372,7 @@ class GameMap {
                 break
             }
             var job = Job.new(0,0,0,0,tasks)
+            job.moveRight()
             job.ticks=CONVEYOR_TICKS
             _spawnJobs.add(job)
         }
@@ -1542,14 +1543,21 @@ class GameMap {
         }
 
         var jobMoved=false
-
         _jobs.each { |job|
             job.update()
-            var x = job.x
-            var y = job.y
-            var tileId=TIC.mget(xstart+x,ystart+y)
+            job.blocked=!hasNoJobAt(job.x+job.dx,job.y+job.dy)
+        }
+
+        _jobs.each { |job|
             if(job.canMove){
-                var stayHere=false
+                // Check again for blocked - we can move during this loop and change blocked state
+                job.blocked=!hasNoJobAt(job.x+job.dx,job.y+job.dy)
+                if(!job.blocked){
+                    job.move()
+                }
+                var x = job.x
+                var y = job.y
+                var tileId=TIC.mget(xstart+x,ystart+y)
                 if(tileId==IN_TILE){
                     job.moveRight()
                     job.ticks=CONVEYOR_TICKS
@@ -1579,11 +1587,12 @@ class GameMap {
                     if(job.containsTask(tileId)){
                         job.doTask(tileId)
                         job.ticks=JOB_TICKS
-                        TIC.sfx(SFXDOTASK)
                         // We still need to stay at this factory, don't move yet
-                        stayHere=true
+                        job.moving=false
+                        TIC.sfx(SFXDOTASK)
                     }else{
                         job.ticks=CONVEYOR_TICKS
+                        job.moving=true
                     }
                 }else if(_gates[x][y]!=null){
                     var gate=_gates[x][y]
@@ -1595,15 +1604,11 @@ class GameMap {
                     }
                 }
 
-                if (!stayHere&&hasNoJobAt(job.x+job.dx,job.y+job.dy)) {
-                    job.move()
-                }
-
                 jobMoved=true
-            }
 
-            if (tileId==0) {
-                _killStateFunction.call()
+                if (tileId==0) {
+                    _killStateFunction.call()
+                }
             }
         }
 
@@ -1689,34 +1694,45 @@ class Job is GameObject {
         _dy=dy
         _tasks=tasks
         _ticks=0
+        _moving=true
+        _blocked=false
     }
     dx{_dx}
     dy{_dy}
 
-    canMove { _ticks<=0 }
+    canMove { _ticks==0 }
     ticks=(value){_ticks=value}
     isComplete{_tasks.count==0}
+    blocked{_blocked}
+    blocked=(value){_blocked=value}
+    moving=(value){_moving=value}
 
     draw() {
-        TIC.spr(352,x*16-4,y*16-4,COLOR_KEY,1,0,0,3,3)
-        var drawy=y*16
+        var d=(_moving&&!_blocked)?1-_ticks*1.0/CONVEYOR_TICKS:0
+        var drawx=(x+_dx*d*d)*16
+        var drawy=(y+_dy*d*d)*16
+        TIC.spr(352,drawx-4,drawy-4,COLOR_KEY,1,0,0,3,3)
         for (task in _tasks) {
-            TIC.spr(task.key,x*16,drawy,COLOR_KEY)
+            TIC.spr(task.key,drawx,drawy,COLOR_KEY)
             if(task.value>1) {
-                TIC.print("x%(task.value)",x*16+9,drawy+2,0,false,1,true)
+                TIC.print("x%(task.value)",drawx+9,drawy+2,0,false,1,true)
             }
             drawy=drawy+8
         }
     }
 
     update() {
-        _ticks=_ticks-1
+        if(_ticks>0){
+            _ticks=_ticks-1
+        }
     }
 
     // Actually move this job
     move(){
-        x=x+_dx
-        y=y+_dy
+        if(_moving&&!_blocked){
+            x=x+_dx
+            y=y+_dy
+        }
     }
 
     // Set the direction of the next move
