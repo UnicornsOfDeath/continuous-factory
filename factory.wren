@@ -58,6 +58,7 @@ var BTN_X=6
 var BTN_Y=7
 
 // MAP/TASK IDS
+var EMPTY_TILE=0
 var IN_TILE=16
 var OUT_TILE=17
 var CONV_R=18
@@ -1207,7 +1208,7 @@ class GameMap {
     
     construct new(i, killStateFunction) {
         _started=false
-        _userTiles=[CONV_U,CONV_D,CONV_L,CONV_R]
+        _userTiles=[EMPTY_TILE,CONV_U,CONV_D,CONV_L,CONV_R]
         _conveyorBelts=[]
         _jobs=[]
         _killStateFunction=killStateFunction
