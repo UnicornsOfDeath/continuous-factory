@@ -1354,7 +1354,11 @@ class GameMap {
     }
 
     addGate(x,y,tileId) {
-        _gates[x][y]=Gate.new(x,y,tileId)
+        if (_availableGates[tileId] > 0) {
+            var newValue = _availableGates[tileId] - 1
+            _availableGates[tileId] = newValue
+            _gates[x][y]=Gate.new(x,y,tileId)
+        }
     }
 
     hasNoJobAt(x,y){
