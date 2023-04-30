@@ -814,7 +814,7 @@ class Toolbar {
             CONV_L: ToolbarButton.new(19),
             CONV_U: ToolbarButton.new(20),
             CONV_D: ToolbarButton.new(21),
-            DISK_GATE: ToolbarButton.new(80),
+            DISK: ToolbarButton.new(80),
         }
 
         _selection=CONV_R
@@ -855,6 +855,7 @@ class MainState is State {
         _buildPhase=true
         _mouse=TIC.mouse()
         _toolbar=Toolbar.new()
+        _userDir=RIGHT
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
         _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
         _resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
@@ -909,21 +910,29 @@ class MainState is State {
                     var tileY=(_mouseY/16).floor
 
                     var existingBelt=_map.getConveyorBelt(tileX,tileY)
+                    var existingGate=_map.getGate(tileX,tileY)
                     if(existingBelt!=null) {
-                        var newDir=(existingBelt.dir+1)%4
-                        _map.updateConveyorBeltDir(tileX,tileY,newDir)
-                        _toolbar.selection=ConveyorBelt.dirToMapTile(newDir)
+                        _userDir=(existingBelt.dir+1)%4
+                        _map.updateConveyorBeltDir(tileX,tileY,_userDir)
+                        _toolbar.selection=ConveyorBelt.dirToMapTile(_userDir)
+                    } else if(existingGate != null) {
+                        _userDir=(existingGate.dir+1)%4
+                        _map.updateGateDir(tileX,tileY,_userDir)
                     } else {
                         if(_toolbar.buttonClicked()==CONV_U) {
+                            _userDir=UP
                             _map.addConveyorBelt(tileX, tileY, UP)
                         } else if(_toolbar.buttonClicked()==CONV_D) {
+                            _userDir=DOWN
                             _map.addConveyorBelt(tileX, tileY, DOWN)
                         } else if(_toolbar.buttonClicked()==CONV_L) {
+                            _userDir=LEFT
                             _map.addConveyorBelt(tileX, tileY, LEFT)
                         } else if(_toolbar.buttonClicked()==CONV_R) {
+                            _userDir=RIGHT
                             _map.addConveyorBelt(tileX, tileY, RIGHT)
-                        } else if(_toolbar.buttonClicked()==DISK_GATE) {
-                            _map.addGate(tileX, tileY, DISK_GATE)
+                        } else if(Gate.tasks().contains(_toolbar.buttonClicked())) {
+                            _map.addGate(tileX,tileY,_toolbar.buttonClicked(),_userDir)
                         }
                     }
                     TIC.sfx(SFXNEXT)
@@ -933,7 +942,7 @@ class MainState is State {
                     var tileX=(_mouseX/16).floor
                     var tileY=(_mouseY/16).floor
 
-                    _map.removeConveyorBelt(tileX,tileY)
+                    _map.removeUserItem(tileX,tileY)
                 }
             }
         } else {
@@ -1244,18 +1253,33 @@ class Factory is GameObject {
 }
 
 class Gate is GameObject {
-    construct new(x,y,tileId) {
+
+    static tasks() {
+        return [DISK,APPLE,GLASS,WIN,LINUX,HAMMER]
+    }
+
+    static toMapTile(task,dir) {
+        return 64+tasks().indexOf(task)+16*dir
+    }
+
+    static new(x,y,tileId) {
+        var task=tasks()[tileId%16]
+        var dirRow=((tileId-64)/16).floor
+        return new(x,y,task,dirRow)
+    }
+
+    construct new(x,y,task,dir) {
         super(x*16,y*16,Rect.new(0,0,16,16))
         _ticks=0
-        _task=[DISK,APPLE,GLASS,WIN,LINUX,HAMMER][tileId%16]
-        var dirRow=((tileId-64)/16).floor
-        if(dirRow==0){
+        _task=task
+        _dir=dir
+        if(dir==0){
             _trueDir=RIGHT
             _falseDir=LEFT
-        }else if(dirRow==1){
+        }else if(dir==1){
             _trueDir=UP
             _falseDir=DOWN
-        }else if(dirRow==2){
+        }else if(dir==2){
             _trueDir=LEFT
             _falseDir=RIGHT
         }else{
@@ -1263,6 +1287,9 @@ class Gate is GameObject {
             _falseDir=UP
         }
     }
+
+    dir {_dir}
+    task{_task}
     trueDir{_trueDir}
     falseDir{_falseDir}
 
@@ -1306,6 +1333,11 @@ class GameMap {
     construct new(i, killStateFunction) {
         _started=false
         _userTiles=[EMPTY_TILE,CONV_U,CONV_D,CONV_L,CONV_R]
+        _userTiles.addAll((64..69).toList)
+        _userTiles.addAll((80..85).toList)
+        _userTiles.addAll((96..101).toList)
+        _userTiles.addAll((112..117).toList)
+        TIC.trace(_userTiles)
         _conveyorBelts=[]
         _jobs=[]
         _killStateFunction=killStateFunction
@@ -1416,9 +1448,30 @@ class GameMap {
         return _conveyorBelts[x][y]
     }
 
+    removeUserItem(x,y) {
+        _conveyorBelts[x][y]=null
+        _gates[x][y]=null
+        TIC.mset(x,y,0)
+    }
+
     updateConveyorBeltDir(x,y,dir) {
-        removeConveyorBelt(x,y)
+        removeUserItem(x,y)
         addConveyorBelt(x,y,dir)
+    }
+
+    addGate(x,y,task,dir) {
+        _gates[x][y]=Gate.new(x,y,task,dir)
+        TIC.mset(x,y,Gate.toMapTile(task,dir))
+    }
+
+    getGate(x,y) {
+        return _gates[x][y]
+    }
+
+    updateGateDir(x,y,dir) {
+        var task=_gates[x][y].task
+        removeUserItem(x,y)
+        addGate(x,y,task,dir)
     }
 
     resetConveyorBelts() {
@@ -1427,7 +1480,16 @@ class GameMap {
                 if(conveyorBelt!=null) {
                     var tileX=(conveyorBelt.x/16).floor
                     var tileY=(conveyorBelt.y/16).floor
-                    removeConveyorBelt(tileX, tileY)
+                    removeUserItem(tileX, tileY)
+                }
+            }
+        }
+        _gates.each {|gateColumn|
+            gateColumn.each {|gate|
+                if(gate!=null) {
+                    var tileX=(gate.x/16).floor
+                    var tileY=(gate.y/16).floor
+                    removeUserItem(tileX, tileY)
                 }
             }
         }
