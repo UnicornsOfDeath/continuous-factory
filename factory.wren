@@ -1198,6 +1198,7 @@ class GameMap {
     
     construct new(i, killStateFunction) {
         _started=false
+        _userTiles=[CONV_U,CONV_D,CONV_L,CONV_R]
         _conveyorBelts=[]
         _jobs=[]
         _killStateFunction=killStateFunction
@@ -1275,6 +1276,8 @@ class GameMap {
 
 
     addConveyorBelt(x,y,dir) {
+        var currentTile=getTileId(x,y)
+        if(!_userTiles.contains(currentTile)) return
         var tileId=ConveyorBelt.dirToMapTile(dir)
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
         TIC.mset(x,y,tileId)
