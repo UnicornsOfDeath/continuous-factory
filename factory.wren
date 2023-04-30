@@ -471,22 +471,43 @@ class ChunkyFont {
 ChunkyFont.init_()
  
 class Button {
-  construct new(x,y,w,h,label,textcolor,fillcolor,hovercolor){
+    x { _x }
+    x=(value) { _x=value }
+    y { _y }
+    y=(value) { _y=value }
+    width { _width }
+    height { _height }
+    wasDown { _wasDown }
+    hover { _hover }
+    clicked { _clicked }
+
+  construct new(x,y,w,h,bordercolor,fillcolor,hovercolor){
     _x=x
     _y=y
-    _label=label
-    _textcolor=textcolor
+    _bordercolor=bordercolor
     _fillcolor=fillcolor
     _hovercolor=hovercolor
     _width=w
     _height=h
-    _textw=TIC.print(label,0,-6)
     _wasDown=false
+    _wasHover=false
     _hover=false
     _clicked=false
   }
 
-  clicked { _clicked }
+  draw() {
+    // border
+    TIC.rectb(x,y,width,height,_textcolor)
+    // fill
+    var fillcolor=_fillcolor
+    if (_hover){
+        fillcolor=_hovercolor
+        if (wasDown){
+            fillcolor=_textcolor
+        }
+    }
+    TIC.rect(x+1,y+1,width-2,height-2,fillcolor)
+  }
  
   update() {
     var mouse=TIC.mouse()
@@ -500,26 +521,42 @@ class Button {
     }
     // Clicking on press
     _clicked=false
-    if (left && _hover && !_wasDown){
+    if (!left && _hover && _wasHover && _wasDown){
       _clicked=true
     }
+    _wasHover=_hover
     _wasDown=left
+  }
+}
+
+class LabelButton is Button {
+
+  construct new(x,y,w,h,label,textcolor,fillcolor,hovercolor){
+    super(x,y,w,h,textcolor,fillcolor,hovercolor)
+    _label=label
+    _textcolor=textcolor
+    _textw=TIC.print(label,0,-6)
   }
  
   draw() {
-    // border
-    TIC.rectb(_x,_y,_width,_height,_textcolor)
-    // fill
-    var fillcolor=_fillcolor
-    if (_hover){
-        fillcolor=_hovercolor
-        if (_wasDown){
-            fillcolor=_textcolor
-        }
-    }
-    TIC.rect(_x+1,_y+1,_width-2,_height-2,fillcolor)
+    super.draw()
     // label centered
-    TIC.print(_label,_x+(_width-_textw)/2,_y+(_height-FONTH)/2,_textcolor)
+    TIC.print(_label,x+(width-_textw)/2,y+(height-FONTH)/2,_textcolor)
+  }
+}
+
+class ImageButton is Button {
+  construct new(x,y,w,h,sprite,spriteW,spriteH,bordercolor,fillcolor,hovercolor){
+    super(x,y,w,h,bordercolor,fillcolor,hovercolor)
+    _sprite=sprite
+    _spriteW=spriteW
+    _spriteH=spriteH
+  }
+  
+  draw() {
+    super.draw()
+    // sprite centered
+    TIC.spr(_sprite,x+(width-_spriteW*8)/2,y+(height-_spriteH*8)/2,COLOR_KEY,1,0,0,_spriteW,_spriteH)
   }
 }
 
@@ -731,12 +768,60 @@ class GameObject {
     }
 }
 
+class ToolbarButton is ImageButton {
+    construct new(sprite){
+        super(0,0,10,10,sprite,1,1,3,8,9)
+    }
+}
+
+class Toolbar {
+
+    construct new() {
+        _buttons={
+            CONV_R: ToolbarButton.new(18),
+            CONV_L: ToolbarButton.new(19),
+            CONV_U: ToolbarButton.new(20),
+            CONV_D: ToolbarButton.new(21),
+        }
+
+        _selection=null
+    }
+
+    clicked() {
+        return _buttons.values.any {|button| button.clicked }
+    }
+
+    buttonClicked() {
+        return _selection
+    }
+
+    update(){
+        var ypos=16
+        for (button in _buttons) {
+            button.value.x=(MAP_W-2)*8+2
+            button.value.y=ypos
+            button.value.update()
+            if(button.value.clicked) {
+                _selection=button.key
+            }
+            ypos=ypos+12
+        }
+    }
+
+    draw() {
+        for (button in _buttons) {
+            button.value.draw()
+        }
+    }
+}
+
 class MainState is State {
     construct new() {
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
         _mouse=TIC.mouse()
-        _startbtn=Button.new(90,1,50,9,"START",3,8,9)
+        _toolbar=Toolbar.new()
+        _startbtn=LabelButton.new(90,1,50,9,"START",3,8,9)
         _failed=false
         _deathticks=60
     }
@@ -755,20 +840,32 @@ class MainState is State {
     update() {
         super.update()
 
+        var mousePrev=_mouse
+        _mouse=TIC.mouse()
+        
         if (_buildPhase){
             _startbtn.update()
+            _toolbar.update()
             if(_startbtn.clicked){
                 _buildPhase=false
                 tt=0
                 _map.start()
+            }else if(_toolbar.clicked()) {
+                // NO-OP
             }else{
-                var mousePrev=_mouse
-                _mouse=TIC.mouse()
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
                 _mouseClick=_mouse[2]
-                if(_mouseClick&&mousePrev[2]!=true) {
-                    _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+                if(!_mouseClick&&mousePrev[2]==true) {
+                    if(_toolbar.buttonClicked()==CONV_U) {
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+                    } else if(_toolbar.buttonClicked()==CONV_D) {
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, DOWN)
+                    } else if(_toolbar.buttonClicked()==CONV_L) {
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, LEFT)
+                    } else if(_toolbar.buttonClicked()==CONV_R) {
+                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, RIGHT)
+                    }
                     TIC.sfx(SFXNEXT)
                 }
             }
@@ -821,6 +918,7 @@ class MainState is State {
             TIC.print("Time:%(_tt)",WIDTH-70,2,0,false,1,true)
             TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,2,0,false,1,true)
         }
+        _toolbar.draw()
     }
 }
 
@@ -1279,10 +1377,10 @@ class Job is GameObject {
 // <TILES>
 // 016:00000000000000000f0f00f00f0ff0f00f0f0ff00f0f00f00f0f00f000000000
 // 017:0000000000000000090809999098089090980890909808900908889000000000
-// 018:0000000000001000000011000111111001111110000011000000100000000000
-// 019:0000000000010000001100000111111001111110001100000001000000000000
-// 020:0000000000011000001111000111111000011000000110000001100000000000
-// 021:0000000000011000000110000001100001111110001111000001100000000000
+// 018:9999999999991999999911999111111991111119999911999999199999999999
+// 019:9999999999919999991199999111111991111119991199999991999999999999
+// 020:9999999999911999991111999111111999911999999119999991199999999999
+// 021:9999999999911999999119999991199991111119991111999991199999999999
 // 032:9000009905225509052255090555550905333509053335099000009999999999
 // 033:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 034:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
