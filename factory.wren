@@ -821,7 +821,8 @@ class MainState is State {
         _buildPhase=true
         _mouse=TIC.mouse()
         _toolbar=Toolbar.new()
-        _startbtn=LabelButton.new(90,1,50,9,"START",3,8,9)
+        _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
+        _resetbtn=LabelButton.new(120,1,50,9,"RESET",3,8,9)
         _failed=false
         _deathticks=60
     }
@@ -835,7 +836,8 @@ class MainState is State {
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
 		TIC.music(MUSGAME,-1,-1,true)
-		_startbtn=LabelButton.new(90,1,50,9,"START",3,8,9)
+		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
+		_resetbtn=LabelButton.new(120,1,50,9,"RESET",3,8,9)
 		_failed=false
         _deathticks=60
     }
@@ -848,6 +850,7 @@ class MainState is State {
         
         if (_buildPhase){
             _startbtn.update()
+            _resetbtn.update()
             _toolbar.update()
             if(_startbtn.clicked){
                 _buildPhase=false
@@ -855,6 +858,9 @@ class MainState is State {
                 _map.start()
             }else if(_toolbar.clicked()) {
                 // NO-OP
+            }else if(_resetbtn.clicked){
+                reset()
+                _map.resetConveyorBelts()
             }else{
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
@@ -928,6 +934,7 @@ class MainState is State {
         if(_buildPhase){
             TIC.print("Build Phase",WIDTH-40,2,0,false,1,true)
             _startbtn.draw()
+            _resetbtn.draw()
         }else{
             TIC.print("Time:%(_tt)",WIDTH-70,2,0,false,1,true)
             TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,2,0,false,1,true)
@@ -1165,10 +1172,6 @@ class GameMap {
 
     stop() {
         _started=false
-        resetJobs()
-    }
-
-    resetJobs() {
     }
 
     addConveyorBelt(x,y,dir,tileId) {
@@ -1179,6 +1182,18 @@ class GameMap {
     removeConveyorBelt(x,y) {
         _conveyorBelts[x][y]=null
         TIC.mset(x,y,0)
+    }
+
+    resetConveyorBelts() {
+        _conveyorBelts.each {|conveyorBeltColumn|
+            conveyorBeltColumn.each {|conveyorBelt|
+                if(conveyorBelt!=null) {
+                    var tileX=(conveyorBelt.x/16).floor
+                    var tileY=(conveyorBelt.y/16).floor
+                    removeConveyorBelt(tileX, tileY)
+                }
+            }
+        }
     }
 
     hasNoJobAt(x,y){
