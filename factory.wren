@@ -801,6 +801,7 @@ class Toolbar {
             CONV_L: ToolbarButton.new(19),
             CONV_U: ToolbarButton.new(20),
             CONV_D: ToolbarButton.new(21),
+            DISK_GATE: ToolbarButton.new(80),
         }
 
         _selection=CONV_R
@@ -912,6 +913,8 @@ class MainState is State {
                             _map.addConveyorBelt(tileX, tileY, LEFT)
                         } else if(_toolbar.buttonClicked()==CONV_R) {
                             _map.addConveyorBelt(tileX, tileY, RIGHT)
+                        } else if(_toolbar.buttonClicked()==DISK_GATE) {
+                            _map.addGate(tileX, tileY, DISK_GATE)
                         }
                     }
                     TIC.sfx(SFXNEXT)
@@ -1348,6 +1351,10 @@ class GameMap {
                 }
             }
         }
+    }
+
+    addGate(x,y,tileId) {
+        _gates[x][y]=Gate.new(x,y,tileId)
     }
 
     hasNoJobAt(x,y){
