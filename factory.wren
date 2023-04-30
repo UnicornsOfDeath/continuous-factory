@@ -26,8 +26,8 @@ var MUSSPD=3
 var FPS=60
 var MUSBEATTICKS=FPS*60/MUSTEMPO*MUSSPD/6
 var SFXNEXT=1
-var SFXSPAWN=2
-var SFXHIT=3
+var SFXDOTASK=2
+var SFXSPAWN=3
 var SFXSCREAM=4
 var SFXGRASS=5
 var SFXRIGHT=6
@@ -73,10 +73,10 @@ var HAMMER=50
 
 // JOB
 
-var JOB_SPEED=0.2
 var JOB_SPAWN_TICKS=120
 
-var CONVEYOR_TICKS=20
+var CONVEYOR_TICKS=60
+var JOB_TICKS=240
 
 class ChunkyFont {
 
@@ -500,7 +500,7 @@ class Button {
     }
     // Clicking on press
     _clicked=false
-    if (left && _hover && _wasDown==false){
+    if (left && _hover && !_wasDown){
       _clicked=true
     }
     _wasDown=left
@@ -758,6 +758,7 @@ class MainState is State {
             _startbtn.update()
             if(_startbtn.clicked){
                 _buildPhase=false
+                tt=0
                 _map.start()
             }else{
                 var mousePrev=_mouse
@@ -994,7 +995,7 @@ class GameMap {
                 break
             }
             var job = Job.new(0,0,0,0,tasks)
-            job.moveRight(CONVEYOR_TICKS)
+            job.ticks=CONVEYOR_TICKS
             spawnJobs.add(job)
         }
         for(x in 0..MAP_W/2) {
@@ -1027,8 +1028,18 @@ class GameMap {
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
     }
 
+    hasNoJobAt(x,y){
+        var result=true
+        _jobs.each { |job|
+            if(x==job.x&&y==job.y){
+                result=false
+            }
+        }
+        return result
+    }
+
     update(){
-        if(_started==false){
+        if(!_started){
             return
         }
         var xstart=(LEVEL%8)*MAP_W
@@ -1044,32 +1055,51 @@ class GameMap {
         }
 
         _jobs.each { |job|
-            var x = job.x / 16
-            var y = job.y / 16
-            var tileId=TIC.mget(xstart+x,ystart+y)
-            if(tileId==IN_TILE){
-                //_inTile=InTile.new(x,y,spawnJobs)
-            }else if(tileId==OUT_TILE){
-                //_outTile=OutTile.new(x,y)
-            }else if(tileId==CONV_R){
-                job.moveRight(CONVEYOR_TICKS)
-            }else if(tileId==CONV_L){
-                job.moveLeft(CONVEYOR_TICKS)
-            }else if(tileId==CONV_U){
-                job.moveUp(CONVEYOR_TICKS)
-            }else if(tileId==CONV_D){
-                job.moveDown(CONVEYOR_TICKS)
-            }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
-                //_factories.add(Factory.new(x,y,tileId))
-            }
-
             job.update()
+            if(job.canMove){
+                var x = job.x
+                var y = job.y
+                var tileId=TIC.mget(xstart+x,ystart+y)
+                var stayHere=false
+                if(tileId==IN_TILE){
+                    job.moveRight()
+                    job.ticks=CONVEYOR_TICKS
+                }else if(tileId==OUT_TILE){
+                    //_outTile=OutTile.new(x,y)
+                }else if(tileId==CONV_R){
+                    job.moveRight()
+                    job.ticks=CONVEYOR_TICKS
+                }else if(tileId==CONV_L){
+                    job.moveLeft()
+                    job.ticks=CONVEYOR_TICKS
+                }else if(tileId==CONV_U){
+                    job.moveUp()
+                    job.ticks=CONVEYOR_TICKS
+                }else if(tileId==CONV_D){
+                    job.moveDown()
+                    job.ticks=CONVEYOR_TICKS
+                }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+                    if(job.containsTask(tileId)){   
+                        job.doTask(tileId)
+                        job.ticks=JOB_TICKS
+                        TIC.sfx(SFXDOTASK)
+                        // We still need to stay at this factory, don't move yet
+                        stayHere=true
+                    }else{
+                        job.ticks=CONVEYOR_TICKS
+                    }
+                }
+
+                if (!stayHere&&hasNoJobAt(job.x+job.dx,job.y+job.dy)) {
+                    job.move()
+                }
+            }
         }
 
         var job=_inTile.update()
         if(job!=null){
-            job.x=_inTile.x
-            job.y=_inTile.y
+            job.x=_inTile.x/16
+            job.y=_inTile.y/16
             _jobs.add(job)
             TIC.sfx(SFXSPAWN)
         }
@@ -1131,71 +1161,68 @@ class Request {
 
 class Job is GameObject {
     construct new(x,y,dx,dy,tasks) {
-        super(x*16,y*16,Rect.new(0,0,16,16))
+        super(x,y,Rect.new(0,0,16,16))
         _dx=dx
         _dy=dy
         _tasks=tasks
         _ticks=0
     }
+    dx{_dx}
+    dy{_dy}
+
+    canMove { _ticks<=0 }
+    ticks=(value){_ticks=value}
 
     draw() {
-        TIC.spr(352,x-4,y-4,COLOR_KEY,1,0,0,3,3)
-        _y=y
+        TIC.spr(352,x*16-4,y*16-4,COLOR_KEY,1,0,0,3,3)
+        var drawy=y*16
         for (task in _tasks) {
-            TIC.spr(task.key,x,_y,COLOR_KEY)
+            TIC.spr(task.key,x*16,drawy,COLOR_KEY)
             if(task.value>1) {
-                TIC.print("x%(task.value)",x+9,_y+2,0,false,1,true)
+                TIC.print("x%(task.value)",x*16+9,drawy+2,0,false,1,true)
             }
-            _y=_y+8
+            drawy=drawy+8
         }
     }
 
     update() {
         _ticks=_ticks-1
-        if (_ticks == 0) {
-            x=x+_dx
-            y=y+_dy
-            _justMoved = true
-        }
     }
 
-    moveRight(timeTaken) {
-        moved(timeTaken)
-        _dx = 16
+    // Actually move this job
+    move(){
+        x=x+_dx
+        y=y+_dy
+    }
+
+    // Set the direction of the next move
+    moveRight() {
+        _dx = 1
         _dy = 0
     }
-
-    moveLeft(timeTaken) {
-        moved(timeTaken)
-        _dx = -16
+    moveLeft() {
+        _dx = -1
         _dy = 0
     }
-
-    moveDown(timeTaken) {
-        moved(timeTaken)
+    moveDown() {
         _dx = 0
-        _dy = 16
+        _dy = 1
     }
-
-    moveUp(timeTaken) {
-        moved(timeTaken)
+    moveUp() {
         _dx = 0
-        _dy = -16
-    }
-
-    moved(timeTaken) {
-        if (_ticks <= 0) {
-            _ticks = timeTaken
-        }
+        _dy = -1
     }
 
     doTask(task){
-        if (_tasks[task] == 0) {
+        if (_tasks[task] > 0) {
             _tasks[task]=_tasks[task]-1
+            if(_tasks[task]==0){
+                _tasks.remove(task)
+            }
         }
     }
 
-    containsTask=(task){
+    containsTask(task){
         return _tasks[task] && _tasks[task] > 0
     }
 }
@@ -1472,7 +1499,7 @@ class Job is GameObject {
 // 000:02000200020002001200320042004200520052007200720092009200a200a200c200d200e200e200f200e200e200e200e200e200e200e200e200e200470000000000
 // 001:08f83800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800680000000000
 // 002:00c0007000500000310051008100c100d100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100c57000000000
-// 003:04073402640f840ea40dd40ce40cf40bf408f408f408f408f408f408f408f408f408f408f408f408f408f408f40af409f40af409f40af400f400f400a00000000000
+// 003:02004200420062007200820092009200a200b200b200c200c200d200e200e200e200e200f200f200f200f200f200f200f200f200f200f200f200f200507000000000
 // 004:8367335703451355136333514301530f630e730d830c930b930aa30aa30ab309c308c308d308d308d308e308e308e308f308f308f308f308f308f308400000000600
 // 005:d400d400d400c400c400d400d400d400e400e400d400d400c400c400d400c400d400f400f400f400e400b400a400a400a400a400b400c400d400e4004000000f0000
 // 006:0800080018001800180038405840584058406800680068007800887088709870987098709870a870b870b870c870d870f870f870f870f870f870f870500000000000
