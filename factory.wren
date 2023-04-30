@@ -859,17 +859,28 @@ class MainState is State {
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
                 _mouseClick=_mouse[2]
+                _mouseRightClick=_mouse[4]
                 if(!_mouseClick&&mousePrev[2]==true) {
+                    var tileX=(_mouseX/16).floor
+                    var tileY=(_mouseY/16).floor
+
                     if(_toolbar.buttonClicked()==CONV_U) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP, CONV_U)
+                        _map.addConveyorBelt(tileX, tileY, UP, CONV_U)
                     } else if(_toolbar.buttonClicked()==CONV_D) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, DOWN, CONV_D)
+                        _map.addConveyorBelt(tileX, tileY, DOWN, CONV_D)
                     } else if(_toolbar.buttonClicked()==CONV_L) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, LEFT, CONV_L)
+                        _map.addConveyorBelt(tileX, tileY, LEFT, CONV_L)
                     } else if(_toolbar.buttonClicked()==CONV_R) {
-                        _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, RIGHT, CONV_R)
+                        _map.addConveyorBelt(tileX, tileY, RIGHT, CONV_R)
                     }
                     TIC.sfx(SFXNEXT)
+                }
+
+                if(!_mouseRightClick&&mousePrev[4]==true) {
+                    var tileX=(_mouseX/16).floor
+                    var tileY=(_mouseY/16).floor
+
+                    _map.removeConveyorBelt(tileX,tileY)
                 }
             }
         }
@@ -1163,6 +1174,11 @@ class GameMap {
     addConveyorBelt(x,y,dir,tileId) {
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
         TIC.mset(x,y,tileId)
+    }
+
+    removeConveyorBelt(x,y) {
+        _conveyorBelts[x][y]=null
+        TIC.mset(x,y,0)
     }
 
     hasNoJobAt(x,y){
