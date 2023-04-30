@@ -1085,10 +1085,10 @@ class GameMap {
 
         _jobs.each { |job|
             job.update()
+            var x = job.x
+            var y = job.y
+            var tileId=TIC.mget(xstart+x,ystart+y)
             if(job.canMove){
-                var x = job.x
-                var y = job.y
-                var tileId=TIC.mget(xstart+x,ystart+y)
                 var stayHere=false
                 if(tileId==IN_TILE){
                     job.moveRight()
@@ -1117,14 +1117,17 @@ class GameMap {
                     }else{
                         job.ticks=CONVEYOR_TICKS
                     }
-                }else {
-                     _killStateFunction.call()
-                 }
+                }
 
                 if (!stayHere&&hasNoJobAt(job.x+job.dx,job.y+job.dy)) {
                     job.move()
                 }
             }
+
+            if (tileId != IN_TILE && tileId != OUT_TILE && tileId != CONV_R && tileId != CONV_L&& tileId != CONV_D && tileId != CONV_U && tileId != DISK && tileId != APPLE && tileId != GLASS && tileId != WIN && tileId != LINUX && tileId != HAMMER) {
+              _killStateFunction.call()
+            }
+
         }
 
         var job=_inTile.update()
