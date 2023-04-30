@@ -39,9 +39,9 @@ var RANDOM=Random.new()
 var FONTH=5
 
 var UP=0
-var DOWN=1
-var LEFT=2
-var RIGHT=3
+var RIGHT=1
+var DOWN=2
+var LEFT=3
 
 // VRAM ADDRESSES
 var PALETTE_MAP=0x3FF0
@@ -784,7 +784,7 @@ class Toolbar {
             CONV_D: ToolbarButton.new(21),
         }
 
-        _selection=null
+        _selection=CONV_R
     }
 
     clicked() {
@@ -864,14 +864,19 @@ class MainState is State {
                     var tileX=(_mouseX/16).floor
                     var tileY=(_mouseY/16).floor
 
-                    if(_toolbar.buttonClicked()==CONV_U) {
-                        _map.addConveyorBelt(tileX, tileY, UP, CONV_U)
-                    } else if(_toolbar.buttonClicked()==CONV_D) {
-                        _map.addConveyorBelt(tileX, tileY, DOWN, CONV_D)
-                    } else if(_toolbar.buttonClicked()==CONV_L) {
-                        _map.addConveyorBelt(tileX, tileY, LEFT, CONV_L)
-                    } else if(_toolbar.buttonClicked()==CONV_R) {
-                        _map.addConveyorBelt(tileX, tileY, RIGHT, CONV_R)
+                    var existingBelt=_map.getConveyorBelt(tileX,tileY)
+                    if(existingBelt!=null) {
+                        _map.updateConveyorBeltDir(tileX,tileY,(existingBelt.dir+1)%4)
+                    } else {
+                        if(_toolbar.buttonClicked()==CONV_U) {
+                            _map.addConveyorBelt(tileX, tileY, UP)
+                        } else if(_toolbar.buttonClicked()==CONV_D) {
+                            _map.addConveyorBelt(tileX, tileY, DOWN)
+                        } else if(_toolbar.buttonClicked()==CONV_L) {
+                            _map.addConveyorBelt(tileX, tileY, LEFT)
+                        } else if(_toolbar.buttonClicked()==CONV_R) {
+                            _map.addConveyorBelt(tileX, tileY, RIGHT)
+                        }
                     }
                     TIC.sfx(SFXNEXT)
                 }
@@ -1007,6 +1012,9 @@ class WinState is SkipState {
 }
 
 class ConveyorBelt is GameObject {
+
+    dir {_dir}
+    dir=(value) {_dir=value}
     
     construct new(x,y,dir) {
         super(x*16,y*16,Rect.new(0,0,16,16))
@@ -1204,14 +1212,14 @@ class GameMap {
                 }else if(tileId==OUT_TILE){
                     _outTile=OutTile.new(x,y)
                 }else if(tileId==CONV_R){
-                    addConveyorBelt(x,y,RIGHT,tileId)
+                    addConveyorBelt(x,y,RIGHT)
                 }else if(tileId==CONV_L){
-                    addConveyorBelt(x,y,LEFT,tileId)
+                    addConveyorBelt(x,y,LEFT)
                 }else if(tileId==CONV_U){
                     System.print(tileId)
-                    addConveyorBelt(x,y,UP,tileId)
+                    addConveyorBelt(x,y,UP)
                 }else if(tileId==CONV_D){
-                    addConveyorBelt(x,y,DOWN,tileId)
+                    addConveyorBelt(x,y,DOWN)
                 }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
                     _factories.add(Factory.new(x,y,tileId))
                 }else if(tileId>=64&&tileId<=117&&(tileId%16)<6){
@@ -1237,7 +1245,17 @@ class GameMap {
     resetJobs() {
     }
 
-    addConveyorBelt(x,y,dir,tileId) {
+    addConveyorBelt(x,y,dir) {
+        var tileId=null
+        if(dir==UP) {
+            tileId=CONV_U
+        } else if(dir==DOWN) {
+            tileId=CONV_D
+        } else if(dir==LEFT) {
+            tileId=CONV_L
+        } else if(dir==RIGHT) {
+            tileId=CONV_R
+        } 
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
         TIC.mset(x,y,tileId)
     }
@@ -1245,6 +1263,15 @@ class GameMap {
     removeConveyorBelt(x,y) {
         _conveyorBelts[x][y]=null
         TIC.mset(x,y,0)
+    }
+
+    getConveyorBelt(x,y) {
+        return _conveyorBelts[x][y]
+    }
+
+    updateConveyorBeltDir(x,y,dir) {
+        removeConveyorBelt(x,y)
+        addConveyorBelt(x,y,dir)
     }
 
     hasNoJobAt(x,y){
