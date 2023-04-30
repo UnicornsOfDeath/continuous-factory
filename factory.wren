@@ -843,7 +843,7 @@ class InTile is GameObject {
 }
 
 class OutTile is GameObject {
-    
+
     construct new(x,y) {
         super(x*16,y*16,Rect.new(0,0,16,16))
         _ticks=0
@@ -881,6 +881,7 @@ class GameMap {
     
     construct new(i) {
         _conveyorBelts=[]
+        _jobs=[]
         for(i in 1..MAP_H) {
             _conveyorBelts.add(List.filled(MAP_W, null))
         }
@@ -909,6 +910,10 @@ class GameMap {
         }
     }
 
+    addJob(x,y,job) {
+        _jobs[x][y]=job
+    }
+
     addConveyorBelt(x,y,dir) {
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
     }
@@ -918,6 +923,9 @@ class GameMap {
         _mouseX=_mouse[0]
         _mouseY=_mouse[1]
         _mouseClick=_mouse[2]
+
+        var xstart=(LEVEL%8)*MAP_W
+        var ystart=(LEVEL/8).floor
 
         if(_mouseClick) {
             addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
@@ -931,6 +939,15 @@ class GameMap {
         _factories.each {|factory|
             factory.update()
         }
+
+        _jobs.each { |jobColumn|
+            jobColumn.each {|job|
+                if(job!=null) {
+                    job.update()
+                }
+            }
+        }
+
         _inTile.update()
         _outTile.update()
     }
@@ -949,6 +966,13 @@ class GameMap {
         _factories.each {|factory|
             factory.draw()
         }
+
+         _jobs.each {|jobColumn|
+            jobColumn.each {|job|
+                if(job!=null) job.draw()
+            }
+        }
+
         _inTile.draw()
         _outTile.draw()
     }
@@ -1010,6 +1034,7 @@ class Job is GameObject {
 
     update() {
         // todo
+        //_ticks=_ticks+1
         x=x+_dx
         y=y+_dy
     }
