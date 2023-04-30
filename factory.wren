@@ -749,7 +749,6 @@ class MainState is State {
         super.reset()
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
-        // TODO: reset jobs
 		TIC.music(MUSGAME,-1,-1,true)
     }
 
@@ -785,7 +784,8 @@ class MainState is State {
     }
 
     next() {
-        if (TIC.btnp(BTN_A)) {
+        // TODO: livesticks
+        if (_map!=null&&_map.jobsDone==_map.jobsCount) {
             finish()
             winstate.reset()
             return winstate
