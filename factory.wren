@@ -72,6 +72,7 @@ var HAMMER=50
 // JOB
 
 var JOB_SPEED=0.2
+var JOB_SPAWN_TICKS=120
 
 class ChunkyFont {
 
@@ -676,15 +677,6 @@ class GameObject {
 class MainState is State {
     construct new() {
         _map=GameMap.new(LEVEL)
-        _jobs = [
-            Job.new(1,1,JOB_SPEED,0,{WIN:1}),
-            Job.new(1,2,JOB_SPEED,0,{LINUX:1}),
-            Job.new(1,3,JOB_SPEED,0,{APPLE:1}),
-            Job.new(1,4,JOB_SPEED,0,{DISK:1}),
-            Job.new(1,5,JOB_SPEED,0,{DISK:1}),
-            Job.new(1,6,JOB_SPEED,0,{WIN:2}),
-            Job.new(1,7,JOB_SPEED,0,{WIN:2,APPLE:3}),
-        ]
     }
     winstate { _winstate }
     winstate=(value) {
@@ -707,9 +699,6 @@ class MainState is State {
         }
 
         _map.update()
-        _jobs.each {|job|
-            job.update()
-        }
     }
 
     next() {
@@ -723,9 +712,6 @@ class MainState is State {
 
     draw() {
         _map.draw()
-        _jobs.each {|job|
-            job.draw()
-        }
         _tt=(tt/60).floor
         TIC.print("Level:%(LEVEL+1)",1,1,0,false,1,true)
         TIC.print("Time:%(_tt)",WIDTH-30,1,0,false,1,true)
@@ -823,10 +809,11 @@ class ConveyorBelt is GameObject {
 }
 
 class InTile is GameObject {
-    
-    construct new(x,y) {
+    // Spawns jobs on itself
+    construct new(x,y,jobs) {
         super(x*16,y*16,Rect.new(0,0,16,16))
         _ticks=0
+        _jobs=jobs
     }
 
     draw() {
@@ -838,7 +825,15 @@ class InTile is GameObject {
     }
 
     update() {
+        // Returns the job to spawn or null
         _ticks=_ticks+1
+        if(_ticks==JOB_SPAWN_TICKS){
+            _ticks=0
+            if(_jobs.count>0){
+                return _jobs.removeAt(0)
+            }
+        }
+        return null
     }
 }
 
@@ -888,31 +883,48 @@ class GameMap {
         _factories=[]
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
-        for(x in 0..MAP_W) {
-            for(y in 0..MAP_H){
-                _tileid=TIC.mget(xstart+x,ystart+y)
-                if(_tileid==IN_TILE){
-                    _inTile=InTile.new(x,y)
-                }else if(_tileid==OUT_TILE){
+        // Load jobs to spawn
+        var spawnJobs=[]
+        for(x in 0..MAP_W){
+            var tasks={}
+            for(y in MAP_H-1..0){
+                var tileId=TIC.mget(xstart+x,ystart+y)
+                if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+                    if(tasks[tileId]==null){
+                        tasks[tileId]=0
+                    }
+                    tasks[tileId]=tasks[tileId]+1
+                }else{
+                    break
+                }
+            }
+            if(tasks.count==0){
+                // No more jobs
+                break
+            }
+            spawnJobs.add(Job.new(0,0,0.1,0,tasks))
+        }
+        for(x in 0..MAP_W/2) {
+            for(y in 0..MAP_H/2){
+                var tileId=TIC.mget(xstart+x,ystart+y)
+                if(tileId==IN_TILE){
+                    _inTile=InTile.new(x,y,spawnJobs)
+                }else if(tileId==OUT_TILE){
                     _outTile=OutTile.new(x,y)
-                }else if(_tileid==CONV_R){
+                }else if(tileId==CONV_R){
                     addConveyorBelt(x,y,RIGHT)
-                }else if(_tileid==CONV_L){
+                }else if(tileId==CONV_L){
                     addConveyorBelt(x,y,LEFT)
-                }else if(_tileid==CONV_U){
+                }else if(tileId==CONV_U){
                     addConveyorBelt(x,y,UP)
-                }else if(_tileid==CONV_D){
+                }else if(tileId==CONV_D){
                     addConveyorBelt(x,y,DOWN)
-                }else if(_tileid==DISK||_tileid==APPLE||_tileid==GLASS||_tileid==WIN||_tileid==LINUX||_tileid==HAMMER){
-                    _factories.add(Factory.new(x,y,_tileid))
+                }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+                    _factories.add(Factory.new(x,y,tileId))
                 }
             }
         }
         _mouse=TIC.mouse()
-    }
-
-    addJob(x,y,job) {
-        _jobs[x][y]=job
     }
 
     addConveyorBelt(x,y,dir) {
@@ -943,15 +955,16 @@ class GameMap {
             factory.update()
         }
 
-        _jobs.each { |jobColumn|
-            jobColumn.each {|job|
-                if(job!=null) {
-                    job.update()
-                }
-            }
+        _jobs.each { |job|
+            job.update()
         }
 
-        _inTile.update()
+        var job=_inTile.update()
+        if(job!=null){
+            job.x=_inTile.x
+            job.y=_inTile.y
+            _jobs.add(job)
+        }
         _outTile.update()
     }
 
@@ -960,6 +973,9 @@ class GameMap {
         var y=(_mouseY/16).floor*16
 
         TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
+
+        _inTile.draw()
+        _outTile.draw()
 
         _conveyorBelts.each {|conveyorBeltColumn|
             conveyorBeltColumn.each {|conveyorBelt|
@@ -970,14 +986,9 @@ class GameMap {
             factory.draw()
         }
 
-         _jobs.each {|jobColumn|
-            jobColumn.each {|job|
-                if(job!=null) job.draw()
-            }
+         _jobs.each {|job|
+            job.draw()
         }
-
-        _inTile.draw()
-        _outTile.draw()
     }
 }
 
