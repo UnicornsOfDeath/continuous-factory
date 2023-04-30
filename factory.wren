@@ -605,6 +605,21 @@ class State {
 	draw() {
         return
     }
+
+    drawWindow(x,y,w,h) {
+        TIC.rectb(x,y,w,h,0)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rectb(x,y,w-1,h-1,3)
+        TIC.rectb(x+1,y+1,w-1,h-1,1)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rect(x,y,w,h,2)
+    }
 }
 
 class SkipState is State {
@@ -992,17 +1007,29 @@ class MainState is State {
         _tt=(tt/60).floor
         TIC.rect(0,0,WIDTH,11,_buildPhase?13:9)
         TIC.print("Level:%(LEVEL+1)",2,2,0,false,1)
+
+        // Draw next jobs window
+        drawWindow(2,HEIGHT-20,WIDTH-4,19)
+        TIC.print("Next:",5,HEIGHT-15,0,false,1,true)
+        var jx=1.6
+        _map.spawnJobs.each{|job|
+            job.x=jx
+            job.y=7
+            job.draw()
+            jx=jx+1.2
+        }
+
         if(_buildPhase){
-            TIC.print("Build Phase",WIDTH-40,2,0,false,1,true)
-            TIC.print("Goal: %(GOLD_TIMES[LEVEL])" ,WIDTH-80,2,0,false,1,true)
+            TIC.print("Build Phase",WIDTH-40,3,0,false,1,true)
+            TIC.print("Goal: %(GOLD_TIMES[LEVEL])" ,WIDTH-80,3,0,false,1,true)
             _startbtn.draw()
             _resetbtn.draw()
             _toolbar.draw()
         }else{
-            TIC.print("Goal: %(GOLD_TIMES[LEVEL])" ,WIDTH-110,2,0,false,1,true)
-            TIC.print("Time:%(_tt)",WIDTH-70,2,0,false,1,true)
+            TIC.print("Goal: %(GOLD_TIMES[LEVEL])" ,WIDTH-110,3,0,false,1,true)
+            TIC.print("Time:%(_tt)",WIDTH-70,3,0,false,1,true)
             _stopbtn.draw()
-            TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,2,0,false,1,true)
+            TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,3,0,false,1,true)
         }
     }
 }
@@ -1108,18 +1135,7 @@ class HelpState is SkipState {
         var w=180
         var h=120
         var fh=FONTH+2
-        TIC.rectb(x,y,w,h,0)
-        x=x+1
-        y=y+1
-        w=w-2
-        h=h-2
-        TIC.rectb(x,y,w-1,h-1,3)
-        TIC.rectb(x+1,y+1,w-1,h-1,1)
-        x=x+1
-        y=y+1
-        w=w-2
-        h=h-2
-        TIC.rect(x,y,w,h,2)
+        drawWindow(x,y,w,h)
 		TIC.print("README",x+30,y+2,0,false,3)
         x=x+2
         y=y+25
