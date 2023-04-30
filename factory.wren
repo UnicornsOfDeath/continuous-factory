@@ -76,6 +76,8 @@ var HAMMER=50
 var JOB_SPEED=0.2
 var JOB_SPAWN_TICKS=120
 
+var CONVEYOR_TICKS=20
+
 class ChunkyFont {
 
     static init_() {
@@ -991,8 +993,8 @@ class GameMap {
                 // No more jobs
                 break
             }
-            var job = Job.new(0,0,0.1,0,tasks)
-            job.moveRight(5)
+            var job = Job.new(0,0,0,0,tasks)
+            job.moveRight(CONVEYOR_TICKS)
             spawnJobs.add(job)
         }
         for(x in 0..MAP_W/2) {
@@ -1042,6 +1044,24 @@ class GameMap {
         }
 
         _jobs.each { |job|
+            var x = job.x / 16
+            var y = job.y / 16
+            var tileId=TIC.mget(xstart+x,ystart+y)
+            if(tileId==IN_TILE){
+                //_inTile=InTile.new(x,y,spawnJobs)
+            }else if(tileId==OUT_TILE){
+                //_outTile=OutTile.new(x,y)
+            }else if(tileId==CONV_R){
+                job.moveRight(CONVEYOR_TICKS)
+            }else if(tileId==CONV_L){
+                job.moveLeft(CONVEYOR_TICKS)
+            }else if(tileId==CONV_U){
+                job.moveUp(CONVEYOR_TICKS)
+            }else if(tileId==CONV_D){
+                job.moveDown(CONVEYOR_TICKS)
+            }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+                //_factories.add(Factory.new(x,y,tileId))
+            }
 
             job.update()
         }
@@ -1116,7 +1136,6 @@ class Job is GameObject {
         _dy=dy
         _tasks=tasks
         _ticks=0
-        _justMoved=true
     }
 
     draw() {
@@ -1165,14 +1184,13 @@ class Job is GameObject {
     }
 
     moved(timeTaken) {
-        if (_justMoved) {
+        if (_ticks <= 0) {
             _ticks = timeTaken
-            _justMoved = false
         }
     }
 
     doTask(task){
-        if (_tasks[task] > 0) {
+        if (_tasks[task] == 0) {
             _tasks[task]=_tasks[task]-1
         }
     }
