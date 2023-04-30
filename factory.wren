@@ -695,6 +695,7 @@ class SplashState is SkipState {
 class TitleState is SkipState {
 	construct new() {
 		super(40)
+        _startbtn=LabelButton.new(80,HEIGHT-40,80,20,"START",3,8,9)
     }
 
 	reset() {
@@ -703,22 +704,34 @@ class TitleState is SkipState {
         MUSGAMEPLAYING=false
     }
 
+    next(){
+        if(_startbtn.clicked){
+            finish()
+			nextstate.reset()
+			return nextstate
+        }
+        return super.next()
+    }
+
 	finish() {
 		TIC.sfx(SFXNEXT)
-        TIC.music() // stop
-        MUSGAMEPLAYING=false
+        if(!MUSGAMEPLAYING){
+		    TIC.music(MUSGAME,-1,-1,true)
+            MUSGAMEPLAYING=true
+        }
     }
 
     update(){
         super.update()
+        _startbtn.update()
     }
 
     draw() {
         super.draw()
         TIC.cls(COLOR_BG)
-        TIC.print("Press Z or X to Start",30,100,2+(tt/20)%2)
         var cf=ChunkyFont.new(30,20)
         cf.s("^12Continuous\n^5eFactory")
+        _startbtn.draw()
     }
 }
 
@@ -857,10 +870,6 @@ class MainState is State {
         super.reset()
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
-        if(!MUSGAMEPLAYING){
-		    TIC.music(MUSGAME,-1,-1,true)
-            MUSGAMEPLAYING=true
-        }
 		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
 		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
 		_resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
@@ -1054,6 +1063,77 @@ class WinState is SkipState {
         if (canSkip){
             TIC.print("Press any key to reset", 10, HEIGHT-10, 12)
         }
+    }
+}
+
+class HelpState is SkipState {
+	construct new() {
+		super(300)
+        _read=false
+        _startbtn=LabelButton.new(95,HEIGHT-25,50,9,"START",3,8,9)
+    }
+
+    next(){
+        if(_read||_startbtn.clicked){
+            TIC.sfx(SFXNEXT)
+            finish()
+            nextstate.reset()
+            return nextstate
+        }
+        return super.next()
+    }
+
+    finish(){
+        _read=true
+    }
+
+    update() {
+        _startbtn.update()
+    }
+
+	draw() {
+		super.draw()
+		TIC.cls(COLOR_BG)
+        var x=30
+        var y=5
+        var w=180
+        var h=120
+        var fh=FONTH+2
+        TIC.rectb(x,y,w,h,0)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rectb(x,y,w-1,h-1,3)
+        TIC.rectb(x+1,y+1,w-1,h-1,1)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rect(x,y,w,h,2)
+		TIC.print("README",x+30,y+2,0,false,3)
+        x=x+2
+        y=y+25
+		TIC.print("Welcome, new team member!",x,y,0)
+        y=y+fh
+		TIC.print("Optimize our continuous delivery",x,y,0)
+        y=y+fh
+		TIC.print("system.",x,y,0)
+        y=y+fh
+		TIC.print("FOLDERS with TASKS will appear",x,y,0)
+        y=y+fh
+		TIC.print("from the YELLOW source.",x,y,0)
+        y=y+fh
+		TIC.print("Direct them using",x,y,0)
+        y=y+fh
+		TIC.print("CONVEYOR BELTS.",x,y,0)
+        y=y+fh
+		TIC.print("Complete TASKS in each FOLDER",x,y,0)
+        y=y+fh
+		TIC.print("by passing over MONITORS.",x,y,0)
+        y=y+fh*2
+		TIC.print("Good luck and SYNERGIZE!",x,y,0)
+        _startbtn.draw()
     }
 }
 
@@ -1509,11 +1589,13 @@ class Game is TIC{
 	construct new(){
         var splashState = SplashState.new()
         var titleState = TitleState.new()
+        var helpState = HelpState.new()
         var mainState = MainState.new()
         var deathState = DeathState.new()
         var winState = WinState.new()
         splashState.nextstate = titleState
-        titleState.nextstate = mainState
+        titleState.nextstate = helpState
+        helpState.nextstate = mainState
         mainState.nextstate = deathState
         mainState.winstate = winState
         deathState.nextstate = mainState
