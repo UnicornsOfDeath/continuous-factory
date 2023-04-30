@@ -842,6 +842,26 @@ class InTile is GameObject {
     }
 }
 
+class OutTile is GameObject {
+    
+    construct new(x,y) {
+        super(x*16,y*16,Rect.new(0,0,16,16))
+        _ticks=0
+    }
+
+    draw() {
+        var frame=2-((_ticks/15).floor%3)
+        palset(5,9)
+        palset(4,8)
+        TIC.spr(256+frame*2,x,y,COLOR_KEY,1,0,0,2,2)
+        palset(null,null)
+    }
+
+    update() {
+        _ticks=_ticks+1
+    }
+}
+
 class GameMap {
     
     construct new(i) {
@@ -857,7 +877,7 @@ class GameMap {
                 if(_tileid==IN_TILE){
                     _inTile=InTile.new(x,y)
                 }else if(_tileid==OUT_TILE){
-                    // TODO
+                    _outTile=OutTile.new(x,y)
                 }else if(_tileid==CONV_R){
                     addConveyorBelt(x,y,RIGHT)
                 }else if(_tileid==CONV_L){
@@ -903,6 +923,7 @@ class GameMap {
             }
         }
         _inTile.update()
+        _outTile.update()
     }
 
     draw() {
@@ -917,6 +938,7 @@ class GameMap {
             }
         }
         _inTile.draw()
+        _outTile.draw()
     }
 }
 
