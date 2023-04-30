@@ -824,6 +824,7 @@ class MainState is State {
         _mouse=TIC.mouse()
         _toolbar=Toolbar.new()
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
+        _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
         _resetbtn=LabelButton.new(120,1,50,9,"RESET",3,8,9)
         _failed=false
         _deathticks=60
@@ -840,6 +841,7 @@ class MainState is State {
 		TIC.music(MUSGAME,-1,-1,true)
 		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
 		_resetbtn=LabelButton.new(120,1,50,9,"RESET",3,8,9)
+
 		_failed=false
         _deathticks=60
     }
@@ -898,6 +900,11 @@ class MainState is State {
                     _map.removeConveyorBelt(tileX,tileY)
                 }
             }
+        } else {
+            _stopbtn.update()
+            if(_stopbtn.clicked){
+                reset()
+            }
         }
 
         if (_failed){
@@ -946,6 +953,7 @@ class MainState is State {
             _resetbtn.draw()
         }else{
             TIC.print("Time:%(_tt)",WIDTH-70,2,0,false,1,true)
+            _stopbtn.draw()
             TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,2,0,false,1,true)
         }
         _toolbar.draw()
