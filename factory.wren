@@ -36,6 +36,7 @@ var SFXTXT=8
 var SFXEXPLODE=9
 var SFXBORK=10
 var RANDOM=Random.new()
+var FONTH=5
 
 var UP=0
 var DOWN=1
@@ -466,6 +467,59 @@ class ChunkyFont {
 }
 
 ChunkyFont.init_()
+ 
+class Button {
+  construct new(x,y,w,h,label,textcolor,fillcolor,hovercolor){
+    _x=x
+    _y=y
+    _label=label
+    _textcolor=textcolor
+    _fillcolor=fillcolor
+    _hovercolor=hovercolor
+    _width=w
+    _height=h
+    _textw=TIC.print(label,0,-6)
+    _wasDown=false
+    _hover=false
+    _clicked=false
+  }
+
+  clicked { _clicked }
+ 
+  update() {
+    var mouse=TIC.mouse()
+    var mx=mouse[0]
+    var my=mouse[1]
+    var left=mouse[2]
+    _hover=mx>=_x && mx<=_x+_width && my>=_y && my<=_y+_height
+    // Change cursor: hand
+    if (_hover){
+      TIC.poke(0x3FFB,129)
+    }
+    // Clicking on press
+    _clicked=false
+    if (left && _hover && _wasDown==false){
+      _clicked=true
+    }
+    _wasDown=left
+  }
+ 
+  draw() {
+    // border
+    TIC.rectb(_x,_y,_width,_height,_textcolor)
+    // fill
+    var fillcolor=_fillcolor
+    if (_hover){
+        fillcolor=_hovercolor
+        if (_wasDown){
+            fillcolor=_textcolor
+        }
+    }
+    TIC.rect(_x+1,_y+1,_width-2,_height-2,fillcolor)
+    // label centered
+    TIC.print(_label,_x+(_width-_textw)/2,_y+(_height-FONTH)/2,_textcolor)
+  }
+}
 
 class State {
 	construct new() {
@@ -678,6 +732,9 @@ class GameObject {
 class MainState is State {
     construct new() {
         _map=GameMap.new(LEVEL)
+        _buildPhase=true
+        _mouse=TIC.mouse()
+        _startbtn=Button.new(90,1,50,9,"START",3,8,9)
     }
     winstate { _winstate }
     winstate=(value) {
@@ -687,12 +744,31 @@ class MainState is State {
     reset() {
         super.reset()
         _map=GameMap.new(LEVEL)
+        _buildPhase=true
         // TODO: reset jobs
 		TIC.music(MUSGAME,-1,-1,true)
     }
 
     update() {
         super.update()
+
+        if (_buildPhase){
+            _startbtn.update()
+            if(_startbtn.clicked){
+                _buildPhase=false
+                _map.start()
+            }else{
+                var mousePrev=_mouse
+                _mouse=TIC.mouse()
+                _mouseX=_mouse[0]
+                _mouseY=_mouse[1]
+                _mouseClick=_mouse[2]
+                if(_mouseClick&&mousePrev[2]!=true) {
+                    _map.addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
+                    TIC.sfx(SFXNEXT)
+                }
+            }
+        }
 
         if (false/* lose */){
             TIC.music()
@@ -713,9 +789,20 @@ class MainState is State {
 
     draw() {
         _map.draw()
+        if(_buildPhase){
+            var x=(_mouseX/16).floor*16
+            var y=(_mouseY/16).floor*16
+            TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
+        }
         _tt=(tt/60).floor
+        TIC.rect(0,0,WIDTH,11,_buildPhase?13:9)
         TIC.print("Level:%(LEVEL+1)",1,1,0,false,1,true)
-        TIC.print("Time:%(_tt)",WIDTH-30,1,0,false,1,true)
+        if(_buildPhase){
+            TIC.print("Build Phase",WIDTH-40,1,0,false,1,true)
+            _startbtn.draw()
+        }else{
+            TIC.print("Time:%(_tt)",WIDTH-30,1,0,false,1,true)
+        }
     }
 }
 
@@ -876,6 +963,7 @@ class Factory is GameObject {
 class GameMap {
     
     construct new(i) {
+        _started=false
         _conveyorBelts=[]
         _jobs=[]
         for(i in 1..MAP_H) {
@@ -927,7 +1015,10 @@ class GameMap {
                 }
             }
         }
-        _mouse=TIC.mouse()
+    }
+
+    start() {
+        _started=true
     }
 
     addConveyorBelt(x,y,dir) {
@@ -935,19 +1026,11 @@ class GameMap {
     }
 
     update(){
-        var mousePrev=_mouse
-        _mouse=TIC.mouse()
-        _mouseX=_mouse[0]
-        _mouseY=_mouse[1]
-        _mouseClick=_mouse[2]
-
+        if(_started==false){
+            return
+        }
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
-
-        if(_mouseClick&&mousePrev[2]!=true) {
-            addConveyorBelt((_mouseX/16).floor, (_mouseY/16).floor, UP)
-            TIC.sfx(SFXNEXT)
-        }
 
         _conveyorBelts.each {|conveyorBeltColumn|
             conveyorBeltColumn.each {|conveyorBelt|
@@ -974,11 +1057,6 @@ class GameMap {
     }
 
     draw() {
-        var x=(_mouseX/16).floor*16
-        var y=(_mouseY/16).floor*16
-
-        TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
-
         _inTile.draw()
         _outTile.draw()
 
