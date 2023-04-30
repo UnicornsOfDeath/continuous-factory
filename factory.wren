@@ -776,6 +776,8 @@ class ToolbarButton is ImageButton {
 
 class Toolbar {
 
+    selection=(value){_selection=value}
+
     construct new() {
         _buttons={
             CONV_R: ToolbarButton.new(18),
@@ -872,7 +874,9 @@ class MainState is State {
 
                     var existingBelt=_map.getConveyorBelt(tileX,tileY)
                     if(existingBelt!=null) {
-                        _map.updateConveyorBeltDir(tileX,tileY,(existingBelt.dir+1)%4)
+                        var newDir=(existingBelt.dir+1)%4
+                        _map.updateConveyorBeltDir(tileX,tileY,newDir)
+                        _toolbar.selection=ConveyorBelt.dirToMapTile(newDir)
                     } else {
                         if(_toolbar.buttonClicked()==CONV_U) {
                             _map.addConveyorBelt(tileX, tileY, UP)
@@ -1019,6 +1023,19 @@ class WinState is SkipState {
 }
 
 class ConveyorBelt is GameObject {
+
+    static dirToMapTile(dir) {
+        if(dir==UP) {
+            return CONV_U
+        } else if(dir==DOWN) {
+            return CONV_D
+        } else if(dir==LEFT) {
+            return CONV_L
+        } else if(dir==RIGHT) {
+            return CONV_R
+        }
+        return null
+    }
 
     dir {_dir}
     dir=(value) {_dir=value}
@@ -1248,17 +1265,9 @@ class GameMap {
         _started=false
     }
 
+
     addConveyorBelt(x,y,dir) {
-        var tileId=null
-        if(dir==UP) {
-            tileId=CONV_U
-        } else if(dir==DOWN) {
-            tileId=CONV_D
-        } else if(dir==LEFT) {
-            tileId=CONV_L
-        } else if(dir==RIGHT) {
-            tileId=CONV_R
-        }
+        var tileId=ConveyorBelt.dirToMapTile(dir)
         _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
         TIC.mset(x,y,tileId)
     }
