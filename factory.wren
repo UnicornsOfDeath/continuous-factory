@@ -1182,20 +1182,23 @@ class GameMap {
     }
 
     update(){
+        _conveyorBelts.each {|conveyorBeltColumn|
+            conveyorBeltColumn.each {|conveyorBelt|
+                if(conveyorBelt!=null) conveyorBelt.update()
+            }
+        }
+        
         if(!_started){
             return
         }
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
 
-        _conveyorBelts.each {|conveyorBeltColumn|
-            conveyorBeltColumn.each {|conveyorBelt|
-                if(conveyorBelt!=null) conveyorBelt.update()
-            }
-        }
         _factories.each {|factory|
             factory.update()
         }
+
+        var jobMoved=false
 
         _jobs.each { |job|
             job.update()
@@ -1243,6 +1246,8 @@ class GameMap {
                 if (!stayHere&&hasNoJobAt(job.x+job.dx,job.y+job.dy)) {
                     job.move()
                 }
+
+                jobMoved=true
             }
 
             if (tileId != IN_TILE && tileId != OUT_TILE && tileId != CONV_R && tileId != CONV_L&& tileId != CONV_D && tileId != CONV_U && tileId != DISK && tileId != APPLE && tileId != GLASS && tileId != WIN && tileId != LINUX && tileId != HAMMER) {
@@ -1258,6 +1263,11 @@ class GameMap {
             _jobs.add(job)
             TIC.sfx(SFXSPAWN)
         }
+
+        if(jobMoved || job!=null) {
+            _jobs.sort {|a,b| (a.y==b.y && a.x<b.x) || a.y<b.y }
+        }
+
         _outTile.update()
     }
 
