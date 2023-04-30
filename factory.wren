@@ -1363,6 +1363,7 @@ class GameMap {
                         _jobsDone=_jobsDone+1
                     }else{
                         TIC.sfx(SFXINCOMPLETE)
+                         _killStateFunction.call()
                     }
                     return
                 }else if(tileId==CONV_R){
