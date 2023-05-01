@@ -926,11 +926,16 @@ class MainState is State {
         super.reset()
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _toolbar=Toolbar.new(_map.availableGates)
-        _buildPhase=true
 		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
 		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
 		_resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
         _speedbtn=LabelButton.new(103,1,20,9,">",0,1,2)
+        softreset()
+    }
+
+    softreset(){
+        _map.softreset(false)
+        _buildPhase=true
         _fastforward=false
 		_failed=false
         _deathticks=60
@@ -956,7 +961,7 @@ class MainState is State {
                 // NO-OP
             }else if(_resetbtn.clicked){
                 TIC.sfx(SFXNEXT)
-                _map.resetUserItems()
+                _map.softreset(true)
             }else{
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
@@ -1016,7 +1021,7 @@ class MainState is State {
         } else {
             _stopbtn.update()
             if(_stopbtn.clicked){
-                reset()
+                softreset()
             }
             _speedbtn.update()
             if(_speedbtn.clicked){
@@ -1028,6 +1033,9 @@ class MainState is State {
         if (_failed){
             if (_deathticks>0) {
                 _deathticks=_deathticks-1
+                if (_deathticks==1) {
+                    softreset()
+                }
             }
         }
 
@@ -1042,11 +1050,6 @@ class MainState is State {
             finish()
             winstate.reset()
             return winstate
-        }
-        if (_failed && _deathticks==1) {
-            finish()
-            nextstate.reset()
-            return nextstate
         }
 		return super()
     }
@@ -1415,8 +1418,6 @@ class GameMap {
         _userTiles.addAll((96..101).toList)
         _userTiles.addAll((112..117).toList)
         _conveyorBelts=[]
-        _jobs=[]
-        _flyingjobs=[]
         _killStateFunction=killStateFunction
         for(i in 1..MAP_H) {
             _conveyorBelts.add(List.filled(MAP_W, null))
@@ -1428,32 +1429,6 @@ class GameMap {
             _gates.add(List.filled(MAP_W, null))
         }
         _building=true
-        // Load jobs to spawn
-        _spawnJobs=[]
-        for(x in 0..MAP_W){
-            var tasks={}
-            for(y in MAP_H-1..0){
-                var tileId=getTileId(x,y)
-                if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
-                    if(tasks[tileId]==null){
-                        tasks[tileId]=0
-                    }
-                    tasks[tileId]=tasks[tileId]+1
-                }else{
-                    break
-                }
-            }
-            if(tasks.count==0){
-                // No more jobs
-                break
-            }
-            var job = Job.new(0,0,0,0,tasks)
-            job.moveRight()
-            job.ticks=CONVEYOR_TICKS
-            _spawnJobs.add(job)
-        }
-        _jobsCount=_spawnJobs.count
-        _jobsDone=0
         for(x in 0..MAP_W/2) {
             for(y in 0..MAP_H/2){
                 var tileId=getTileId(x,y)
@@ -1495,6 +1470,7 @@ class GameMap {
                 break
             }
         }
+        softreset(false)
     }
 
     time{_time}
@@ -1503,6 +1479,67 @@ class GameMap {
     jobsDone{_jobsDone}
     haswon{jobsDone==jobsCount&&_flyingjobs.count==0}
     availableGates{_availableGates}
+
+    softreset(resetTiles) {
+        _jobs=[]
+        _flyingjobs=[]
+        _time=0
+        // Load jobs to spawn
+        _spawnJobs=[]
+        for(x in 0..MAP_W){
+            var tasks={}
+            for(y in MAP_H-1..0){
+                var tileId=getTileId(x,y)
+                if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+                    if(tasks[tileId]==null){
+                        tasks[tileId]=0
+                    }
+                    tasks[tileId]=tasks[tileId]+1
+                }else{
+                    break
+                }
+            }
+            if(tasks.count==0){
+                // No more jobs
+                break
+            }
+            var job = Job.new(0,0,0,0,tasks)
+            job.moveRight()
+            job.ticks=CONVEYOR_TICKS
+            _spawnJobs.add(job)
+        }
+        _jobsCount=_spawnJobs.count
+        // Reconnect the intile
+        for(x in 0..MAP_W/2) {
+            for(y in 0..MAP_H/2){
+                var tileId=getTileId(x,y)
+                if(tileId==IN_TILE){
+                    _inTile=InTile.new(x,y,_spawnJobs)
+                }
+            }
+        }
+        _jobsDone=0
+        if(resetTiles){
+            _conveyorBelts.each {|conveyorBeltColumn|
+                conveyorBeltColumn.each {|conveyorBelt|
+                    if(conveyorBelt!=null) {
+                        var tileX=(conveyorBelt.x/16).floor
+                        var tileY=(conveyorBelt.y/16).floor
+                        removeUserItem(tileX, tileY)
+                    }
+                }
+            }
+            _gates.each {|gateColumn|
+                gateColumn.each {|gate|
+                    if(gate!=null) {
+                        var tileX=(gate.x/16).floor
+                        var tileY=(gate.y/16).floor
+                        removeUserItem(tileX, tileY)
+                    }
+                }
+            }
+        }
+    }
 
     start() {
         _started=true
@@ -1586,27 +1623,6 @@ class GameMap {
         var ystart=(LEVEL/8).floor
         TIC.mset(xstart+x,ystart+y,tileId)
         updateGateCount(Gate.toMapTile(task,RIGHT),-1)
-    }
-
-    resetUserItems() {
-        _conveyorBelts.each {|conveyorBeltColumn|
-            conveyorBeltColumn.each {|conveyorBelt|
-                if(conveyorBelt!=null) {
-                    var tileX=(conveyorBelt.x/16).floor
-                    var tileY=(conveyorBelt.y/16).floor
-                    removeUserItem(tileX, tileY)
-                }
-            }
-        }
-        _gates.each {|gateColumn|
-            gateColumn.each {|gate|
-                if(gate!=null) {
-                    var tileX=(gate.x/16).floor
-                    var tileY=(gate.y/16).floor
-                    removeUserItem(tileX, tileY)
-                }
-            }
-        }
     }
 
     hasNoJobAt(x,y){
@@ -1777,14 +1793,11 @@ class Game is TIC{
         var titleState = TitleState.new()
         var helpState = HelpState.new()
         var mainState = MainState.new()
-        var deathState = DeathState.new()
         var winState = WinState.new()
         splashState.nextstate = titleState
         titleState.nextstate = helpState
         helpState.nextstate = mainState
-        mainState.nextstate = deathState
         mainState.winstate = winState
-        deathState.nextstate = mainState
         winState.nextstate = mainState
         winState.winstate = splashState
         _state=splashState
