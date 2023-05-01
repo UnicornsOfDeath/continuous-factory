@@ -1533,10 +1533,16 @@ class GameMap {
     removeUserItem(x,y) {
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)) return
-        _conveyorBelts[x][y]=null
-        _gates[x][y]=null
-        if(currentTile==CONV_R||currentTile==CONV_L||currentTile==CONV_U||currentTile==CONV_D){
-            currentTile=CONV_R
+        if(_conveyorBelts[x][y]!=null){
+            // Removing belt
+            _conveyorBelts[x][y]=null
+            if(currentTile==CONV_R||currentTile==CONV_L||currentTile==CONV_U||currentTile==CONV_D){
+                currentTile=CONV_R
+            }
+        }else if(_gates[x][y]!=null){
+            // Removing gate
+            _gates[x][y]=null
+            currentTile=80+(currentTile%16)
         }
         updateGateCount(currentTile,1)
         var xstart=(LEVEL%8)*MAP_W
@@ -1578,7 +1584,7 @@ class GameMap {
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor
         TIC.mset(xstart+x,ystart+y,tileId)
-        updateGateCount(tileId,1)
+        updateGateCount(Gate.toMapTile(task,RIGHT),-1)
     }
 
     resetUserItems() {
