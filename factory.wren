@@ -479,7 +479,7 @@ class ChunkyFont {
 }
 
 ChunkyFont.init_()
- 
+
 class Button {
     x { _x }
     x=(value) { _x=value }
@@ -1409,6 +1409,7 @@ class GameMap {
         TIC.trace(_userTiles)
         _conveyorBelts=[]
         _jobs=[]
+        _flyingjobs=[]
         _killStateFunction=killStateFunction
         for(i in 1..MAP_H) {
             _conveyorBelts.add(List.filled(MAP_W, null))
@@ -1634,6 +1635,7 @@ class GameMap {
                     if (job.isComplete){
                         TIC.sfx(SFXCOMPLETE)
                         _jobsDone=_jobsDone+1
+                        _flyingjobs.add(FlyingJob.new(x*16,y*16))
                     }else{
                         TIC.sfx(SFXINCOMPLETE)
                          _killStateFunction.call()
@@ -1693,6 +1695,13 @@ class GameMap {
             _jobs.sort {|a,b| (a.y==b.y && a.x<b.x) || a.y<b.y }
         }
 
+        _flyingjobs.each{|fj|
+            fj.update()
+            if(fj.isComplete){
+                _flyingjobs.remove(fj)
+            }
+        }
+
         _outTile.update()
     }
 
@@ -1716,6 +1725,10 @@ class GameMap {
 
          _jobs.each {|job|
             job.draw()
+        }
+
+         _flyingjobs.each{|fj|
+            fj.draw()
         }
     }
 }
@@ -1756,6 +1769,25 @@ class Request {
     }
 }
 
+class FlyingJob is GameObject {
+    construct new(x,y) {
+        super(x,y,Rect.new(0,0,16,16))
+        _ticks=60
+    }
+    isComplete{_ticks==0}
+    update(){
+        super.update()
+        if(_ticks>0){
+            _ticks=_ticks-1
+        }
+    }
+    draw() {
+        var frame=(_ticks/5).floor%4
+        var d=1-_ticks/60
+        TIC.spr(357+frame*2,x,y-(d*d)*32,COLOR_KEY,1,0,0,2,2)
+    }
+}
+
 class Job is GameObject {
     construct new(x,y,dx,dy,tasks) {
         super(x,y,Rect.new(0,0,16,16))
@@ -1765,6 +1797,8 @@ class Job is GameObject {
         _ticks=0
         _moving=true
         _blocked=false
+        _spawning=true
+        _r=0
     }
     dx{_dx}
     dy{_dy}
@@ -1780,7 +1814,7 @@ class Job is GameObject {
         var d=(_moving&&!_blocked)?1-_ticks*1.0/CONVEYOR_TICKS:0
         var drawx=(x+_dx*d*d)*16
         var drawy=(y+_dy*d*d)*16
-        TIC.spr(352,drawx-4,drawy-4,COLOR_KEY,1,0,0,3,3)
+        TIC.spr(352,drawx-4,drawy-4,COLOR_KEY,1,0,_r,3,3)
         if(isComplete){
             TIC.spr(355,drawx,drawy,0,1,0,0,2,2)
         }
@@ -1797,6 +1831,11 @@ class Job is GameObject {
         if(_ticks>0){
             _ticks=_ticks-1
         }
+        if(_spawning){
+            _r=(_ticks/5).floor%4
+        }else{
+            _r=0
+        }
     }
 
     // Actually move this job
@@ -1804,6 +1843,7 @@ class Job is GameObject {
         if(_moving&&!_blocked){
             x=x+_dx
             y=y+_dy
+            _spawning=false
         }
     }
 
@@ -1991,11 +2031,27 @@ class Job is GameObject {
 // 097:9999999999999999ccc99999fffc9999ffffccccf3333333ffffffffffffffff
 // 098:99999999999999999999999999999999ccccc999fffffc99fffff099fffff099
 // 100:0000000000000000000000000000000000009000000980000098000009800000
+// 101:9cccccc9cffffffccfffffffcfffffffcfffffffcfffffffcfdfdfdfcdfdfdfd
+// 102:9999999999999999ccccccc9fffffffcfffffff0fffffff0dfdfdfd0fdfdfdc0
+// 103:99999cc99999cffc999cfffc99cfffff9cffffffcffffffdcfffffff9cfffffd
+// 104:9999999999999999999999c9c9999cc9c999ccc9fc9cdc99dccdc999fcddc999
+// 105:999999999c999999cfc99999cffc9999cfffc999cffffc99cfffffc9cffffffc
+// 106:9999999999999999999999cc99999cfc9999cffc999cfffc99cdfffcccdffffc
+// 107:99999999cc999999ccc999999cdc999c9cddc99c99cddccf999cddcd999cddcf
+// 108:99999999cc999999cfc99999fffc9999ffffc999dffffc99ffffffc9dfffffc9
 // 112:99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff
 // 113:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // 114:fffff099fffff099fffff099fffff099fffff099fffff099fffff099fffff099
 // 115:0009900000009909000009990000009800000088000000000000000000000000
 // 116:9800000080000000800000000000000000000000000000000000000000000000
+// 117:cccccccccdddddddcdddddddcdddddddcdddddddcdddddfdcddddfdf90000000
+// 118:ccccccc0ddddddd0ddddddd0ddddddd0dddfdfd0fdfdfdf0dfdfdff000000009
+// 119:9cffffdf99cffdfd99cfffdf99ccfdfc999cffdc9999cdcd9999cfcc99999cc9
+// 120:dcdc9999cddc9999cdc99999ddc99999dc999999c99999999999999999999999
+// 121:cfffffdfcffffdfd9cffdfdf99cffdfd999cffdf9999cdfd99999ccf9999999c
+// 122:cdfdfffccfdfffcccdfdfc99cfdfc999cdfc9999cfc99999cc999999c9999999
+// 123:9999cdcd9999cddc99999cdc99999cdd999999cd9999999c9999999999999999
+// 124:fdffffc9dfdffc99fdfffc99cfdfcc99cdffc999dcdc9999ccfc99999cc99999
 // 128:99cfffff99cfffff99cfffff990dfdfd99cfdfdf990dfdfd9990000099994444
 // 129:fffffffffdfdfdfddfdfdfdffdfdfdfddfdfdfdffdfdfdfd0000000044444444
 // 130:fffff099fdfdf099dfdfd099fdfdf099dfdfd099fdfdf0990000049944444499
