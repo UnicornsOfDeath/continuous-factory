@@ -551,6 +551,11 @@ class LabelButton is Button {
     _textcolor=textcolor
     _textw=TIC.print(label,0,-6)
   }
+
+  label=(value){
+    _label=value
+    _textw=TIC.print(value,0,-6)
+  }
  
   draw() {
     super.draw()
@@ -887,6 +892,8 @@ class MainState is State {
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
         _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
         _resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
+        _speedbtn=null
+        _fastforward=false
         _failed=false
         _deathticks=60
     }
@@ -902,6 +909,8 @@ class MainState is State {
 		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
 		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
 		_resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
+        _speedbtn=LabelButton.new(103,1,20,9,">",0,1,2)
+        _fastforward=false
 		_failed=false
         _deathticks=60
     }
@@ -911,7 +920,7 @@ class MainState is State {
 
         var mousePrev=_mouse
         _mouse=TIC.mouse()
-        
+
         if (_buildPhase){
             _startbtn.update()
             _resetbtn.update()
@@ -988,6 +997,11 @@ class MainState is State {
             if(_stopbtn.clicked){
                 reset()
             }
+            _speedbtn.update()
+            if(_speedbtn.clicked){
+                _fastforward=!_fastforward
+                _speedbtn.label=_fastforward?">>":">"
+            }
         }
 
         if (_failed){
@@ -996,7 +1010,10 @@ class MainState is State {
             }
         }
 
-        _map.update()
+        var ticks=_fastforward?8:1
+        for(i in 1..ticks){
+            _map.update()
+        }
     }
 
     next() {
@@ -1050,9 +1067,10 @@ class MainState is State {
             _toolbar.draw()
         }else{
             TIC.print("Goal: %(GOLD_TIMES[LEVEL])" ,WIDTH-110,3,0,false,1,true)
-            TIC.print("Time:%(_tt)",WIDTH-70,3,0,false,1,true)
+            TIC.print("Time:%(_tt)",WIDTH-75,3,0,false,1,true)
             _stopbtn.draw()
-            TIC.print("Jobs:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-40,3,0,false,1,true)
+            _speedbtn.draw()
+            TIC.print("Folders:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-48,3,0,false,1,true)
         }
     }
 }
