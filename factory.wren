@@ -13,6 +13,7 @@ var HEIGHT=136
 var MAP_W=30
 var MAP_H=17
 var LEVEL=0
+var TRICKY_LEVELS=6
 var NUM_LEVELS=8
 var COLOR_BG=5
 var COLOR_KEY=9
@@ -1117,7 +1118,8 @@ class DeathState is SkipState {
 class WinState is State {
 	construct new() {
 		super()
-        _nextbtn=LabelButton.new(80,HEIGHT-73,80,20,"NEXT",3,8,9)
+        _nextbtn=LabelButton.new(80,HEIGHT-68,80,20,"NEXT",3,8,9)
+        _flyingjobs=[]
     }
     winstate { _winstate }
     winstate=(value) {
@@ -1135,15 +1137,14 @@ class WinState is State {
     next() {
         if(_nextbtn.clicked){
             finish()
+            if (LEVEL==NUM_LEVELS) {
+                LEVEL=0
+                winstate.reset()
+                return winstate
+            }
             LEVEL=LEVEL+1
             nextstate.reset()
             return nextstate
-        }
-        if (LEVEL==NUM_LEVELS) {
-            finish()
-            LEVEL=0
-            winstate.reset()
-            return winstate
         }
 		return super()
     }
@@ -1151,6 +1152,17 @@ class WinState is State {
     update(){
         super.update()
         _nextbtn.update()
+        if(LEVEL==NUM_LEVELS){
+            if(_flyingjobs.count<10){
+                _flyingjobs.add(FlyingJob.new(RANDOM.int(0,WIDTH),RANDOM.int(30,HEIGHT)))
+            }
+            _flyingjobs.each{|fj|
+                fj.update()
+                if(fj.isComplete){
+                    _flyingjobs.remove(fj)
+                }
+            }
+        }
     }
 
 	draw() {
@@ -1159,9 +1171,24 @@ class WinState is State {
         var x=20
         var y=40
         var w=200
-        var h=50
+        var h=55
         drawWindow(x,y,w,h)
-		TIC.print("LEVEL %(LEVEL+1) COMPLETE",x+7,y+5,0,false,2)
+        if(LEVEL==NUM_LEVELS){
+            TIC.print("CONGRATULATIONS!",x+7,y+5,0,false,2)
+            y=y+14
+            TIC.print("Game complete!",x+7,y+5,0,false,1)
+        }else{
+            TIC.print("LEVEL %(LEVEL+1) COMPLETE",x+7,y+5,0,false,2)
+            if(LEVEL+1==TRICKY_LEVELS){
+                y=y+14
+                TIC.print("Challenging levels ahead!",x+7,y+5,0,false,1)
+            }
+        }
+        if(LEVEL==NUM_LEVELS){
+            _flyingjobs.each{|fj|
+                fj.draw()
+            }
+        }
         _nextbtn.draw()
     }
 }
