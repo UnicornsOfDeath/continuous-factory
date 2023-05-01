@@ -1697,7 +1697,7 @@ class GameMap {
                         job.ticks=JOB_TICKS
                         // We still need to stay at this factory, don't move yet
                         job.moving=false
-                        TIC.sfx(SFXNEXT)
+                        TIC.sfx(SFXCOMPLETE)
                     }else{
                         job.ticks=CONVEYOR_TICKS
                         job.moving=true
