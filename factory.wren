@@ -1176,7 +1176,7 @@ class HelpState is SkipState {
 	construct new() {
 		super(300)
         _read=false
-        _startbtn=LabelButton.new(95,HEIGHT-25,50,9,"START",3,8,9)
+        _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",3,8,9)
     }
 
     next(){
@@ -1203,31 +1203,33 @@ class HelpState is SkipState {
         var x=30
         var y=5
         var w=180
-        var h=120
+        var h=125
         var fh=FONTH+2
         drawWindow(x,y,w,h)
-		TIC.print("README",x+30,y+2,0,false,3)
-        x=x+2
+		TIC.print("README",x+35,y+3,0,false,3)
+        x=x+3
         y=y+25
-		TIC.print("Welcome, new team member!",x,y,0)
+		TIC.print("Welcome, new team member!",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("Optimize our continuous delivery",x,y,0)
+		TIC.print("We need you to optimize our continuous delivery",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("system.",x,y,0)
+		TIC.print("system.",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("FOLDERS with TASKS will appear",x,y,0)
+		TIC.print("JOB FOLDERS with TASKS will appear from the",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("from the YELLOW source.",x,y,0)
+		TIC.print("YELLOW source.",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("Direct them using",x,y,0)
+		TIC.print("Direct them around the system using",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("CONVEYOR BELTS.",x,y,0)
+		TIC.print("CONVEYOR BELTS.",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("Complete TASKS in each FOLDER",x,y,0)
+		TIC.print("Complete TASKS in each FOLDER by passing over",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("by passing over MONITORS.",x,y,0)
+		TIC.print("MONITORS.",x,y,0,false,1,true)
+        y=y+fh
+		TIC.print("Once complete, deliver them to the GREEN SINK.",x,y,0,false,1,true)
         y=y+fh*2
-		TIC.print("Good luck and SYNERGIZE!",x,y,0)
+		TIC.print("Good luck and SYNERGIZE!",x,y,0,false,1,true)
         _startbtn.draw()
     }
 }
