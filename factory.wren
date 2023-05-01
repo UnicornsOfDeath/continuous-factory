@@ -842,7 +842,7 @@ class ToolbarButton is ImageButton {
         super.draw()
         _fillcolor=fillcolorprev
         if(count!=null){
-            TIC.print("%(count)",x-4,y+3,3,false,1,true)
+            TIC.print("%(count)",x-4,y+3,0,false,1,true)
         }
     }
 
@@ -1065,7 +1065,6 @@ class MainState is State {
             var y=(_mouseY/16).floor*16
             TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
         }
-        _tt=(tt/60).floor
         TIC.rect(0,0,WIDTH,11,_buildPhase?13:9)
         TIC.print("Level:%(LEVEL+1)",2,2,0,false,1)
 
@@ -1085,10 +1084,11 @@ class MainState is State {
             _startbtn.draw()
             _resetbtn.draw()
             // Toolbar window bg
-            drawWindow(WIDTH-17,13,19,HEIGHT-35)
+            drawWindow(WIDTH-20,13,25,HEIGHT-35)
             _toolbar.draw()
         }else{
-            TIC.print("Time:%(_tt)",WIDTH-75,3,0,false,1,true)
+            var time=(_map.time/60).floor
+            TIC.print("Time:%(time)",WIDTH-75,3,0,false,1,true)
             _stopbtn.draw()
             _speedbtn.draw()
             TIC.print("Folders:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-48,3,0,false,1,true)
@@ -1409,6 +1409,7 @@ class GameMap {
     
     construct new(i, killStateFunction) {
         _started=false
+        _time=0
         _userTiles=[EMPTY_TILE,CONV_U,CONV_D,CONV_L,CONV_R]
         _userTiles.addAll((64..69).toList)
         _userTiles.addAll((80..85).toList)
@@ -1428,8 +1429,6 @@ class GameMap {
         for(i in 1..MAP_H) {
             _gates.add(List.filled(MAP_W, null))
         }
-        var xstart=(LEVEL%8)*MAP_W
-        var ystart=(LEVEL/8).floor
         // Load jobs to spawn
         _spawnJobs=[]
         for(x in 0..MAP_W){
@@ -1453,24 +1452,6 @@ class GameMap {
             job.moveRight()
             job.ticks=CONVEYOR_TICKS
             _spawnJobs.add(job)
-        }
-        // Load available gates to place
-        for(x in MAP_W-1..0){
-            for(y in MAP_H-1..9){
-                var tileId=getTileId(x,y)
-                if(tileId==CONV_R||tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
-                    if(_availableGates[tileId]==null){
-                        _availableGates[tileId]=0
-                    }
-                    _availableGates[tileId]=_availableGates[tileId]+1
-                }else{
-                    break
-                }
-            }
-            if(_availableGates.count==0){
-                // No more gates
-                break
-            }
         }
         _jobsCount=_spawnJobs.count
         _jobsDone=0
@@ -1496,8 +1477,28 @@ class GameMap {
                 }
             }
         }
+        // Load available gates to place
+        // IMPORTANT: do this after populating the level otherwise available gates will be decremented
+        for(x in MAP_W-1..0){
+            for(y in MAP_H-1..9){
+                var tileId=getTileId(x,y)
+                if(tileId==CONV_R||tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
+                    if(_availableGates[tileId]==null){
+                        _availableGates[tileId]=0
+                    }
+                    _availableGates[tileId]=_availableGates[tileId]+1
+                }else{
+                    break
+                }
+            }
+            if(_availableGates.count==0){
+                // No more gates
+                break
+            }
+        }
     }
 
+    time{_time}
     spawnJobs{_spawnJobs}
     jobsCount{_jobsCount}
     jobsDone{_jobsDone}
@@ -1506,10 +1507,12 @@ class GameMap {
 
     start() {
         _started=true
+        _time=0
     }
 
     stop() {
         _started=false
+        _time=0
     }
 
     addConveyorBelt(x,y,dir) {
@@ -1625,6 +1628,7 @@ class GameMap {
     }
 
     update(){
+        _time=_time+1
         _conveyorBelts.each {|conveyorBeltColumn|
             conveyorBeltColumn.each {|conveyorBelt|
                 if(conveyorBelt!=null) conveyorBelt.update()
