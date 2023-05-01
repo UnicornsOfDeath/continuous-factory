@@ -1768,6 +1768,9 @@ class Job is GameObject {
         var drawx=(x+_dx*d*d)*16
         var drawy=(y+_dy*d*d)*16
         TIC.spr(352,drawx-4,drawy-4,COLOR_KEY,1,0,0,3,3)
+        if(isComplete){
+            TIC.spr(355,drawx,drawy,0,1,0,0,2,2)
+        }
         for (task in _tasks) {
             TIC.spr(task.key,drawx,drawy,COLOR_KEY)
             if(task.value>1) {
@@ -1974,9 +1977,12 @@ class Job is GameObject {
 // 096:9999999999999999999ccccc99cfffff99cfffff99cfffff99cfffff99cfffff
 // 097:9999999999999999ccc99999fffc9999ffffccccf3333333ffffffffffffffff
 // 098:99999999999999999999999999999999ccccc999fffffc99fffff099fffff099
+// 100:0000000000000000000000000000000000009000000980000098000009800000
 // 112:99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff99cfffff
 // 113:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // 114:fffff099fffff099fffff099fffff099fffff099fffff099fffff099fffff099
+// 115:0009900000009909000009990000009800000088000000000000000000000000
+// 116:9800000080000000800000000000000000000000000000000000000000000000
 // 128:99cfffff99cfffff99cfffff990dfdfd99cfdfdf990dfdfd9990000099994444
 // 129:fffffffffdfdfdfddfdfdfdffdfdfdfddfdfdfdffdfdfdfd0000000044444444
 // 130:fffff099fdfdf099dfdfd099fdfdf099dfdfd099fdfdf0990000049944444499
