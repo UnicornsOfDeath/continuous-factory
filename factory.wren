@@ -1019,6 +1019,7 @@ class MainState is State {
                     var tileY=(_mouseY/16).floor
 
                     _map.removeUserItem(tileX,tileY)
+                    TIC.sfx(SFXNEXT)
                 }
             }
         } else {
@@ -1483,7 +1484,7 @@ class GameMap {
         for(x in MAP_W-1..0){
             for(y in MAP_H-1..9){
                 var tileId=getTileId(x,y)
-                if(tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
+                if(tileId==CONV_R||tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
                     if(_availableGates[tileId]==null){
                         _availableGates[tileId]=0
                     }
@@ -1541,17 +1542,14 @@ class GameMap {
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)) return
         var tileId=ConveyorBelt.dirToMapTile(dir)
-        _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
-        var xstart=(LEVEL%8)*MAP_W
-        var ystart=(LEVEL/8).floor
-        TIC.mset(xstart+x,ystart+y,tileId)
-    }
-
-    removeConveyorBelt(x,y) {
-        _conveyorBelts[x][y]=null
-        var xstart=(LEVEL%8)*MAP_W
-        var ystart=(LEVEL/8).floor
-        TIC.mset(xstart+x,ystart+y,0)
+        if (_availableGates[CONV_R]==null||_availableGates[CONV_R] > 0) {
+            removeUserItem(x,y)
+            _conveyorBelts[x][y]=ConveyorBelt.new(x,y,dir)
+            var xstart=(LEVEL%8)*MAP_W
+            var ystart=(LEVEL/8).floor
+            TIC.mset(xstart+x,ystart+y,tileId)
+            updateGateCount(CONV_R,-1)
+        }
     }
 
     getConveyorBelt(x,y) {
@@ -1563,19 +1561,34 @@ class GameMap {
         if(!_userTiles.contains(currentTile)) return
         _conveyorBelts[x][y]=null
         _gates[x][y]=null
-        TIC.mset(x,y,0)
+        if(currentTile==CONV_R||currentTile==CONV_L||currentTile==CONV_U||currentTile==CONV_D){
+            currentTile=CONV_R
+        }
+        updateGateCount(currentTile,1)
+        var xstart=(LEVEL%8)*MAP_W
+        var ystart=(LEVEL/8).floor
+        TIC.mset(xstart+x,ystart+y,0)
     }
 
     updateConveyorBeltDir(x,y,dir) {
         removeUserItem(x,y)
         addConveyorBelt(x,y,dir)
+        // This is a hack because for some reason it's double removing
     }
 
     addGate(x,y,tileId) {
         if (_availableGates[tileId] > 0) {
-            var newValue = _availableGates[tileId] - 1
-            _availableGates[tileId] = newValue
+            updateGateCount(tileId,-1)
             _gates[x][y]=Gate.new(x,y,tileId)
+            var xstart=(LEVEL%8)*MAP_W
+            var ystart=(LEVEL/8).floor
+            TIC.mset(xstart+x,ystart+y,tileId)
+        }
+    }
+
+    updateGateCount(tileId,d){
+        if(_availableGates[tileId]!=null){
+            _availableGates[tileId]=_availableGates[tileId]+d
         }
     }
 
@@ -1587,7 +1600,11 @@ class GameMap {
         var task=_gates[x][y].task
         removeUserItem(x,y)
         _gates[x][y]=Gate.new(x,y,task,dir)
-        TIC.mset(x,y,Gate.toMapTile(task,dir))
+        var tileId=Gate.toMapTile(task,dir)
+        var xstart=(LEVEL%8)*MAP_W
+        var ystart=(LEVEL/8).floor
+        TIC.mset(xstart+x,ystart+y,tileId)
+        updateGateCount(tileId,1)
     }
 
     resetUserItems() {
@@ -1697,7 +1714,7 @@ class GameMap {
                         job.ticks=JOB_TICKS
                         // We still need to stay at this factory, don't move yet
                         job.moving=false
-                        TIC.sfx(SFXDOTASK)
+                        TIC.sfx(SFXNEXT)
                     }else{
                         job.ticks=CONVEYOR_TICKS
                         job.moving=true
