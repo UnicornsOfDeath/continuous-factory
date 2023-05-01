@@ -1226,23 +1226,21 @@ class HelpState is SkipState {
         y=y+25
 		TIC.print("Welcome, new team member!",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("We need you to optimize our continuous delivery",x,y,0,false,1,true)
-        y=y+fh
-		TIC.print("system.",x,y,0,false,1,true)
+		TIC.print("Please optimize our continuous delivery system!",x,y,0,false,1,true)
         y=y+fh
 		TIC.print("JOB FOLDERS with TASKS will appear from the",x,y,0,false,1,true)
         y=y+fh
 		TIC.print("YELLOW source.",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("Direct them around the system using",x,y,0,false,1,true)
+		TIC.print("Direct them using CONVEYOR BELTS.",x,y,0,false,1,true)
         y=y+fh
-		TIC.print("CONVEYOR BELTS.",x,y,0,false,1,true)
-        y=y+fh
-		TIC.print("Complete TASKS in each FOLDER by passing over",x,y,0,false,1,true)
-        y=y+fh
-		TIC.print("MONITORS.",x,y,0,false,1,true)
+		TIC.print("Complete TASKS in each FOLDER using MONITORS.",x,y,0,false,1,true)
         y=y+fh
 		TIC.print("Once complete, deliver them to the GREEN SINK.",x,y,0,false,1,true)
+        y=y+fh*2
+		TIC.print("CLICK to PLACE or ROTATE objects",x,y,0,false,1,true)
+        y=y+fh
+		TIC.print("RIGHT CLICK to REMOVE",x,y,0,false,1,true)
         y=y+fh*2
 		TIC.print("Good luck and SYNERGIZE!",x,y,0,false,1,true)
         _startbtn.draw()
