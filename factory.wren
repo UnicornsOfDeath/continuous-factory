@@ -1084,6 +1084,8 @@ class MainState is State {
             TIC.print("Build Phase",WIDTH-40,3,0,false,1,true)
             _startbtn.draw()
             _resetbtn.draw()
+            // Toolbar window bg
+            drawWindow(WIDTH-17,13,19,HEIGHT-35)
             _toolbar.draw()
         }else{
             TIC.print("Time:%(_tt)",WIDTH-75,3,0,false,1,true)
@@ -1099,29 +1101,14 @@ class DeathState is SkipState {
 		super(60)
     }
 
-    reset() {
-        super.reset()
-    }
-
 	finish() {
         return
-    }
-
-    update() {
-        super.update()
     }
 
     next() {
         finish()
         nextstate.reset()
         return nextstate
-    }
-
-	draw() {
-		super.draw()
-		//TIC.cls(COLOR_BG)
-		//TIC.print("Totalled!", 50, 50, 3)
-		//TIC.print("Press any key to restart", 40, 100, 12)
     }
 }
 
