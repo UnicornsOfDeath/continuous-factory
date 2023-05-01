@@ -1415,7 +1415,6 @@ class GameMap {
         _userTiles.addAll((80..85).toList)
         _userTiles.addAll((96..101).toList)
         _userTiles.addAll((112..117).toList)
-        TIC.trace(_userTiles)
         _conveyorBelts=[]
         _jobs=[]
         _flyingjobs=[]
