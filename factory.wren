@@ -815,8 +815,33 @@ class GameObject {
 }
 
 class ToolbarButton is ImageButton {
-    construct new(sprite){
-        super(0,0,10,10,sprite,1,1,3,8,9)
+    construct new(sprite,availableGates,x,y){
+        super(x,y,14,12,sprite,1,1,0,1,2)
+        _sprite=sprite
+        _availableGates=availableGates
+    }
+
+    count{_availableGates[_sprite]}
+
+    draw(){
+        // Draw greyed out if not available
+        var fillcolorprev=_fillcolor
+        if(count!=null&&count==0){
+            _fillcolor=_bordercolor
+        }
+        super.draw()
+        _fillcolor=fillcolorprev
+        if(count!=null){
+            TIC.print("%(count)",x-4,y+3,3,false,1,true)
+        }
+    }
+
+    update() {
+        super.update()
+        // Disable hover if we have none available
+        if(count!=null&&count==0){
+            _hover=false
+        }
     }
 }
 
@@ -825,28 +850,21 @@ class Toolbar {
     selection=(value){_selection=value}
 
     construct new(availableGates) {
+        var xpos=(MAP_W-2)*8+2
+        var ypos=16
+        var dy=13
         _buttons={
-            CONV_R: ToolbarButton.new(CONV_R),
-            CONV_L: ToolbarButton.new(CONV_L),
-            CONV_U: ToolbarButton.new(CONV_U),
-            CONV_D: ToolbarButton.new(CONV_D),
-            //DISK: ToolbarButton.new(80),
+            CONV_R: ToolbarButton.new(CONV_R,availableGates,xpos,ypos),
         }
-
-        addGateButton(availableGates, DISK_GATE)
-        addGateButton(availableGates, APPLE_GATE)
-        addGateButton(availableGates, GLASS_GATE)
-        addGateButton(availableGates, WIN_GATE)
-        addGateButton(availableGates, LINUX_GATE)
-        addGateButton(availableGates, HAMMER_GATE)
+        ypos=ypos+dy
+        for(gateid in [DISK_GATE,APPLE_GATE,GLASS_GATE,WIN_GATE,LINUX_GATE,HAMMER_GATE]){
+            if(availableGates[gateid] != null && availableGates[gateid] > 0) {
+                _buttons[gateid] = ToolbarButton.new(gateid, availableGates,xpos,ypos)
+                ypos=ypos+dy
+            }
+        }
 
         _selection=CONV_R
-    }
-
-    addGateButton(availableGates, gateName) {
-        if(availableGates[gateName] != null && availableGates[gateName] > 0) {
-            _buttons[gateName] = ToolbarButton.new(gateName)
-        }
     }
 
     clicked() {
@@ -858,16 +876,12 @@ class Toolbar {
     }
 
     update(){
-        var ypos=16
         for (button in _buttons) {
-            button.value.x=(MAP_W-2)*8+2
-            button.value.y=ypos
             button.value.update()
             if(button.value.clicked) {
                 _selection=button.key
                 TIC.sfx(SFXNEXT)
             }
-            ypos=ypos+12
         }
     }
 
@@ -880,10 +894,10 @@ class Toolbar {
 
 class MainState is State {
     construct new() {
-        _map=GameMap.new(LEVEL, Fn.new { failState() })
+        _map=null
         _buildPhase=true
         _mouse=TIC.mouse()
-        _toolbar=Toolbar.new(_map.availableGates())
+        _toolbar=null
         _userDir=RIGHT
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
         _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
@@ -901,6 +915,7 @@ class MainState is State {
     reset() {
         super.reset()
         _map=GameMap.new(LEVEL, Fn.new { failState() })
+        _toolbar=Toolbar.new(_map.availableGates)
         _buildPhase=true
 		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
 		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
@@ -1430,6 +1445,7 @@ class GameMap {
             job.ticks=CONVEYOR_TICKS
             _spawnJobs.add(job)
         }
+        // Load available gates to place
         for(x in MAP_W-1..0){
             for(y in MAP_H-1..9){
                 var tileId=getTileId(x,y)
@@ -1476,6 +1492,7 @@ class GameMap {
     spawnJobs{_spawnJobs}
     jobsCount{_jobsCount}
     jobsDone{_jobsDone}
+    availableGates{_availableGates}
 
     start() {
         _started=true
@@ -1511,10 +1528,6 @@ class GameMap {
     updateConveyorBeltDir(x,y,dir) {
         removeUserItem(x,y)
         addConveyorBelt(x,y,dir)
-    }
-
-    availableGates() {
-        return _availableGates
     }
 
     addGate(x,y,tileId) {
@@ -1839,10 +1852,10 @@ class Job is GameObject {
 // 000:0000000000000000000000000007000000000000000000000000000000000000
 // 016:00000000000000000f0f00f00f0ff0f00f0f0ff00f0f00f00f0f00f000000000
 // 017:0000000000000000090809999098089090980890909808900908889000000000
-// 018:9999999999991999999911999111111991111119999911999999199999999999
-// 019:9999999999919999991199999111111991111119991199999991999999999999
-// 020:9999999999911999991111999111111999911999999119999991199999999999
-// 021:9999999999911999999119999991199991111119991111999991199999999999
+// 018:9999999999993999999933999333333993333339999933999999399999999999
+// 019:9999999999939999993399999333333993333339993399999993999999999999
+// 020:9999999999933999993333999333333999933999999339999993399999999999
+// 021:9999999999933999999339999993399993333339993333999993399999999999
 // 032:9000009905225509052255090555550905333509053335099000009999999999
 // 033:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 034:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
