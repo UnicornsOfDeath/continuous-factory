@@ -911,7 +911,7 @@ class MainState is State {
         _userDir=RIGHT
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
         _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
-        _resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
+        _resetbtn=LabelButton.new(105,1,50,9,"CLEAR",3,8,9)
         _speedbtn=null
         _fastforward=false
         _failed=false
@@ -956,7 +956,6 @@ class MainState is State {
                 // NO-OP
             }else if(_resetbtn.clicked){
                 TIC.sfx(SFXNEXT)
-                reset()
                 _map.resetUserItems()
             }else{
                 _mouseX=_mouse[0]
@@ -1428,6 +1427,7 @@ class GameMap {
         for(i in 1..MAP_H) {
             _gates.add(List.filled(MAP_W, null))
         }
+        _building=true
         // Load jobs to spawn
         _spawnJobs=[]
         for(x in 0..MAP_W){
@@ -1476,8 +1476,8 @@ class GameMap {
                 }
             }
         }
+        _building=false
         // Load available gates to place
-        // IMPORTANT: do this after populating the level otherwise available gates will be decremented
         for(x in MAP_W-1..0){
             for(y in MAP_H-1..9){
                 var tileId=getTileId(x,y)
@@ -1555,7 +1555,6 @@ class GameMap {
     updateConveyorBeltDir(x,y,dir) {
         removeUserItem(x,y)
         addConveyorBelt(x,y,dir)
-        // This is a hack because for some reason it's double removing
     }
 
     addGate(x,y,tileId) {
@@ -1569,7 +1568,7 @@ class GameMap {
     }
 
     updateGateCount(tileId,d){
-        if(_availableGates[tileId]!=null){
+        if(!_building&&_availableGates[tileId]!=null){
             _availableGates[tileId]=_availableGates[tileId]+d
         }
     }
