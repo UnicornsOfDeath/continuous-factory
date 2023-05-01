@@ -1028,8 +1028,7 @@ class MainState is State {
     }
 
     next() {
-        // TODO: livesticks
-        if (_map!=null&&_map.jobsDone==_map.jobsCount) {
+        if (_map!=null&&_map.haswon) {
             finish()
             winstate.reset()
             return winstate
@@ -1493,6 +1492,7 @@ class GameMap {
     spawnJobs{_spawnJobs}
     jobsCount{_jobsCount}
     jobsDone{_jobsDone}
+    haswon{jobsDone==jobsCount&&_flyingjobs.count==0}
     availableGates{_availableGates}
 
     start() {
