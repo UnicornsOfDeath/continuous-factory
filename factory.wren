@@ -708,9 +708,8 @@ class SplashState is SkipState {
     }
 }
 
-class TitleState is SkipState {
+class TitleState is State {
 	construct new() {
-		super(40)
         _startbtn=LabelButton.new(80,HEIGHT-45,80,20,"START",3,8,9)
     }
 
@@ -1187,9 +1186,8 @@ class WinState is State {
     }
 }
 
-class HelpState is SkipState {
+class HelpState is State {
 	construct new() {
-		super(300)
         _read=false
         _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",3,8,9)
     }
