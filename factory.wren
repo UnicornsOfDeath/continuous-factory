@@ -1520,6 +1520,8 @@ class GameMap {
     }
 
     removeUserItem(x,y) {
+        var currentTile=getTileId(x,y)
+        if(!_userTiles.contains(currentTile)) return
         _conveyorBelts[x][y]=null
         _gates[x][y]=null
         TIC.mset(x,y,0)
