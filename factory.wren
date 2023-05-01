@@ -823,16 +823,29 @@ class Toolbar {
 
     selection=(value){_selection=value}
 
-    construct new() {
+    construct new(availableGates) {
         _buttons={
-            CONV_R: ToolbarButton.new(18),
-            CONV_L: ToolbarButton.new(19),
-            CONV_U: ToolbarButton.new(20),
-            CONV_D: ToolbarButton.new(21),
-            DISK: ToolbarButton.new(80),
+            CONV_R: ToolbarButton.new(CONV_R),
+            CONV_L: ToolbarButton.new(CONV_L),
+            CONV_U: ToolbarButton.new(CONV_U),
+            CONV_D: ToolbarButton.new(CONV_D),
+            //DISK: ToolbarButton.new(80),
         }
 
+        addGateButton(availableGates, DISK_GATE)
+        addGateButton(availableGates, APPLE_GATE)
+        addGateButton(availableGates, GLASS_GATE)
+        addGateButton(availableGates, WIN_GATE)
+        addGateButton(availableGates, LINUX_GATE)
+        addGateButton(availableGates, HAMMER_GATE)
+
         _selection=CONV_R
+    }
+
+    addGateButton(availableGates, gateName) {
+        if(availableGates[gateName] != null && availableGates[gateName] > 0) {
+            _buttons[gateName] = ToolbarButton.new(gateName)
+        }
     }
 
     clicked() {
@@ -869,7 +882,7 @@ class MainState is State {
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _buildPhase=true
         _mouse=TIC.mouse()
-        _toolbar=Toolbar.new()
+        _toolbar=Toolbar.new(_map.availableGates())
         _userDir=RIGHT
         _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
         _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
@@ -914,7 +927,7 @@ class MainState is State {
             }else if(_resetbtn.clicked){
                 TIC.sfx(SFXNEXT)
                 reset()
-                _map.resetConveyorBelts()
+                _map.resetUserItems()
             }else{
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
@@ -946,8 +959,18 @@ class MainState is State {
                         } else if(_toolbar.buttonClicked()==CONV_R) {
                             _userDir=RIGHT
                             _map.addConveyorBelt(tileX, tileY, RIGHT)
-                        } else if(Gate.tasks().contains(_toolbar.buttonClicked())) {
-                            _map.addGate(tileX,tileY,_toolbar.buttonClicked(),_userDir)
+                        } else if(_toolbar.buttonClicked()==DISK_GATE) {
+                            _map.addGate(tileX,tileY,DISK_GATE)
+                        } else if(_toolbar.buttonClicked()==APPLE_GATE) {
+                            _map.addGate(tileX,tileY,APPLE_GATE)
+                        } else if(_toolbar.buttonClicked()==GLASS_GATE) {
+                            _map.addGate(tileX,tileY,GLASS_GATE)
+                        } else if(_toolbar.buttonClicked()==WIN_GATE) {
+                            _map.addGate(tileX,tileY,WIN_GATE)
+                        } else if(_toolbar.buttonClicked()==LINUX_GATE) {
+                            _map.addGate(tileX,tileY,LINUX_GATE)
+                        } else if(_toolbar.buttonClicked()==HAMMER_GATE) {
+                            _map.addGate(tileX,tileY,HAMMER_GATE)
                         }
                     }
                     TIC.sfx(SFXNEXT)
@@ -1447,7 +1470,6 @@ class GameMap {
         _started=false
     }
 
-
     addConveyorBelt(x,y,dir) {
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)) return
@@ -1476,9 +1498,16 @@ class GameMap {
         addConveyorBelt(x,y,dir)
     }
 
-    addGate(x,y,task,dir) {
-        _gates[x][y]=Gate.new(x,y,task,dir)
-        TIC.mset(x,y,Gate.toMapTile(task,dir))
+    availableGates() {
+        return _availableGates
+    }
+
+    addGate(x,y,tileId) {
+        if (_availableGates[tileId] > 0) {
+            var newValue = _availableGates[tileId] - 1
+            _availableGates[tileId] = newValue
+            _gates[x][y]=Gate.new(x,y,tileId)
+        }
     }
 
     getGate(x,y) {
@@ -1488,10 +1517,11 @@ class GameMap {
     updateGateDir(x,y,dir) {
         var task=_gates[x][y].task
         removeUserItem(x,y)
-        addGate(x,y,task,dir)
+        _gates[x][y]=Gate.new(x,y,task,dir)
+        TIC.mset(x,y,Gate.toMapTile(task,dir))
     }
 
-    resetConveyorBelts() {
+    resetUserItems() {
         _conveyorBelts.each {|conveyorBeltColumn|
             conveyorBeltColumn.each {|conveyorBelt|
                 if(conveyorBelt!=null) {
@@ -1509,14 +1539,6 @@ class GameMap {
                     removeUserItem(tileX, tileY)
                 }
             }
-        }
-    }
-
-    addGate(x,y,tileId) {
-        if (_availableGates[tileId] > 0) {
-            var newValue = _availableGates[tileId] - 1
-            _availableGates[tileId] = newValue
-            _gates[x][y]=Gate.new(x,y,tileId)
         }
     }
 
