@@ -12,7 +12,7 @@ var WIDTH=240
 var HEIGHT=136
 var MAP_W=30
 var MAP_H=17
-var LEVEL=0
+var LEVEL=5
 var TRICKY_LEVELS=6
 var NUM_LEVELS=8
 var COLOR_BG=5
@@ -484,6 +484,7 @@ class Button {
     wasDown { _wasDown }
     hover { _hover }
     clicked { _clicked }
+    tooltip=(value){_tooltip=value}
 
   construct new(x,y,w,h,bordercolor,fillcolor,hovercolor){
     _x=x
@@ -497,6 +498,7 @@ class Button {
     _wasHover=false
     _hover=false
     _clicked=false
+    _tooltip=null
   }
 
   draw() {
@@ -511,6 +513,9 @@ class Button {
         }
     }
     TIC.rect(x+1,y+1,width-2,height-2,fillcolor)
+    if(_hover&&_tooltip){
+        TIC.print(_tooltip,x-35,y+3,_textcolor,false,1,true)
+    }
   }
  
   update() {
@@ -826,10 +831,11 @@ class GameObject {
 }
 
 class ToolbarButton is ImageButton {
-    construct new(sprite,availableGates,x,y){
+    construct new(sprite,availableGates,x,y,atooltip){
         super(x,y,14,12,sprite,1,1,0,1,2)
         _sprite=sprite
         _availableGates=availableGates
+        tooltip=atooltip
     }
 
     count{_availableGates[_sprite]}
@@ -865,12 +871,12 @@ class Toolbar {
         var ypos=16
         var dy=13
         _buttons={
-            CONV_R: ToolbarButton.new(CONV_R,availableGates,xpos,ypos),
+            CONV_R: ToolbarButton.new(CONV_R,availableGates,xpos,ypos,"conv.belt"),
         }
         ypos=ypos+dy
         for(gateid in [DISK_GATE,APPLE_GATE,GLASS_GATE,WIN_GATE,LINUX_GATE,HAMMER_GATE]){
             if(availableGates[gateid] != null && availableGates[gateid] > 0) {
-                _buttons[gateid] = ToolbarButton.new(gateid, availableGates,xpos,ypos)
+                _buttons[gateid] = ToolbarButton.new(gateid, availableGates,xpos,ypos,"logic gate")
                 ypos=ypos+dy
             }
         }
@@ -1067,6 +1073,8 @@ class MainState is State {
             var x=(_mouseX/16).floor*16
             var y=(_mouseY/16).floor*16
             TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
+            TIC.print("l.click:place/rotate",x+17,y+2,3,false,1,true)
+            TIC.print("r.click:remove",x+17,y+9,3,false,1,true)
         }
         TIC.rect(0,0,WIDTH,11,_buildPhase?13:9)
         TIC.print("Level:%(LEVEL+1)",2,2,0,false,1)
