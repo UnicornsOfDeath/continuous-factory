@@ -5,6 +5,7 @@
 // license: MIT License
 // version: 0.1
 // script:  wren
+// saveid:  continuous-factory
 
 import "random" for Random
 
@@ -709,7 +710,13 @@ class SplashState is SkipState {
 
 class TitleState is State {
 	construct new() {
-        _startbtn=LabelButton.new(80,HEIGHT-45,80,20,"START",3,8,9)
+        _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",3,8,9)
+        _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE",3,8,9)
+        _savelvl=TIC.pmem(0)
+        if(_savelvl>0){
+            _startbtn.x=40
+            _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE (%(_savelvl+1))",3,8,9)
+        }
     }
 
 	reset() {
@@ -720,6 +727,12 @@ class TitleState is State {
 
     next(){
         if(_startbtn.clicked){
+            finish()
+			nextstate.reset()
+			return nextstate
+        }
+        if(_continuebtn.clicked){
+            LEVEL=_savelvl
             finish()
 			nextstate.reset()
 			return nextstate
@@ -738,6 +751,9 @@ class TitleState is State {
     update(){
         super.update()
         _startbtn.update()
+        if(_savelvl>0){
+            _continuebtn.update()
+        }
     }
 
     draw() {
@@ -759,6 +775,9 @@ class TitleState is State {
         y=y+7
 		printShadow("All rights reserved.",x+50,y,0,1,1,true)
         _startbtn.draw()
+        if(_savelvl>0){
+            _continuebtn.draw()
+        }
     }
 
     printShadow(text,x,y,color,shadow,scale,small){
@@ -1151,6 +1170,9 @@ class WinState is State {
                 return winstate
             }
             LEVEL=LEVEL+1
+            if(LEVEL>TIC.pmem(0)){
+                TIC.pmem(0,LEVEL)
+            }
             nextstate.reset()
             return nextstate
         }
@@ -1205,6 +1227,11 @@ class HelpState is State {
 	construct new() {
         _read=false
         _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",3,8,9)
+    }
+
+    reset(){
+        super.reset()
+        _read=LEVEL>0
     }
 
     next(){
