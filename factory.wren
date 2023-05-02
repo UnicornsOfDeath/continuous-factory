@@ -520,7 +520,7 @@ class Button {
     }
     TIC.rect(x+1,y+1,width-2,height-2,fc)
     if(_hover&&_tooltip){
-        TIC.print(_tooltip,x-35,y+3,_textcolor,false,1,true)
+        TIC.print(_tooltip,x-40,y+3,_textcolor,false,1,true)
     }
   }
  
