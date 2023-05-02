@@ -484,8 +484,13 @@ class Button {
     height { _height }
     wasDown { _wasDown }
     hover { _hover }
+    hover=(value){_hover=value}
     clicked { _clicked }
     tooltip=(value){_tooltip=value}
+    fillcolor{_fillcolor}
+    fillcolor=(value){_fillcolor=value}
+    bordercolor{_bordercolor}
+    bordercolor=(value){_bordercolor=value}
 
   construct new(x,y,w,h,bordercolor,fillcolor,hovercolor){
     _x=x
@@ -506,14 +511,14 @@ class Button {
     // border
     TIC.rectb(x,y,width,height,_textcolor)
     // fill
-    var fillcolor=_fillcolor
+    var fc=_fillcolor
     if (_hover){
-        fillcolor=_hovercolor
+        fc=_hovercolor
         if (wasDown){
-            fillcolor=_textcolor
+            fc=_textcolor
         }
     }
-    TIC.rect(x+1,y+1,width-2,height-2,fillcolor)
+    TIC.rect(x+1,y+1,width-2,height-2,fc)
     if(_hover&&_tooltip){
         TIC.print(_tooltip,x-35,y+3,_textcolor,false,1,true)
     }
@@ -861,12 +866,12 @@ class ToolbarButton is ImageButton {
 
     draw(){
         // Draw greyed out if not available
-        var fillcolorprev=_fillcolor
+        var fillcolorprev=fillcolor
         if(count!=null&&count==0){
-            _fillcolor=_bordercolor
+            fillcolor=bordercolor
         }
         super.draw()
-        _fillcolor=fillcolorprev
+        fillcolor=fillcolorprev
         if(count!=null){
             TIC.print("%(count)",x-4,y+3,0,false,1,true)
         }
@@ -920,7 +925,12 @@ class Toolbar {
 
     draw() {
         for (button in _buttons) {
+            var oldhover=button.value.hover
+            if(_selection==button.key){
+                button.value.hover=true
+            }
             button.value.draw()
+            button.value.hover=oldhover
         }
     }
 }
