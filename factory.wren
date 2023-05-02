@@ -884,6 +884,7 @@ class ToolbarButton is ImageButton {
 class Toolbar {
 
     selection=(value){_selection=value}
+    selection{_selection}
 
     construct new(availableGates) {
         var xpos=(MAP_W-2)*8+2
@@ -905,10 +906,6 @@ class Toolbar {
 
     clicked() {
         return _buttons.values.any {|button| button.clicked }
-    }
-
-    buttonClicked() {
-        return _selection
     }
 
     update(){
@@ -1007,29 +1004,29 @@ class MainState is State {
                         _userDir=(existingGate.dir+1)%4
                         _map.updateGateDir(tileX,tileY,_userDir)
                     } else {
-                        if(_toolbar.buttonClicked()==CONV_U) {
+                        if(_toolbar.selection==CONV_U) {
                             _userDir=UP
                             _map.addConveyorBelt(tileX, tileY, UP)
-                        } else if(_toolbar.buttonClicked()==CONV_D) {
+                        } else if(_toolbar.selection==CONV_D) {
                             _userDir=DOWN
                             _map.addConveyorBelt(tileX, tileY, DOWN)
-                        } else if(_toolbar.buttonClicked()==CONV_L) {
+                        } else if(_toolbar.selection==CONV_L) {
                             _userDir=LEFT
                             _map.addConveyorBelt(tileX, tileY, LEFT)
-                        } else if(_toolbar.buttonClicked()==CONV_R) {
+                        } else if(_toolbar.selection==CONV_R) {
                             _userDir=RIGHT
                             _map.addConveyorBelt(tileX, tileY, RIGHT)
-                        } else if(_toolbar.buttonClicked()==DISK_GATE) {
+                        } else if(_toolbar.selection==DISK_GATE) {
                             _map.addGate(tileX,tileY,DISK_GATE)
-                        } else if(_toolbar.buttonClicked()==APPLE_GATE) {
+                        } else if(_toolbar.selection==APPLE_GATE) {
                             _map.addGate(tileX,tileY,APPLE_GATE)
-                        } else if(_toolbar.buttonClicked()==GLASS_GATE) {
+                        } else if(_toolbar.selection==GLASS_GATE) {
                             _map.addGate(tileX,tileY,GLASS_GATE)
-                        } else if(_toolbar.buttonClicked()==WIN_GATE) {
+                        } else if(_toolbar.selection==WIN_GATE) {
                             _map.addGate(tileX,tileY,WIN_GATE)
-                        } else if(_toolbar.buttonClicked()==LINUX_GATE) {
+                        } else if(_toolbar.selection==LINUX_GATE) {
                             _map.addGate(tileX,tileY,LINUX_GATE)
-                        } else if(_toolbar.buttonClicked()==HAMMER_GATE) {
+                        } else if(_toolbar.selection==HAMMER_GATE) {
                             _map.addGate(tileX,tileY,HAMMER_GATE)
                         }
                     }
@@ -1091,9 +1088,25 @@ class MainState is State {
         if(_buildPhase){
             var x=(_mouseX/16).floor*16
             var y=(_mouseY/16).floor*16
+            // Show icon for current action
+            var useritem=_map.getTileId((_mouseX/16).floor,(_mouseY/16).floor)
+            if(useritem==0){
+                TIC.spr(_toolbar.selection,x+2,y+2,COLOR_KEY)
+                if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
+                    // show currently selected tile item
+                    TIC.print("not enough",x+17,y+6,3,false,1,true)
+                }else{
+                    TIC.spr(_toolbar.selection,x+2,y+2,COLOR_KEY)
+                    TIC.print("l.click:place/rotate",x+17,y+6,3,false,1,true)
+                }
+            }else {
+                if(_map.availableGates[_map.toBaseGate(useritem)]!=null){
+                    // Rotate/remove item under cursor
+                    TIC.print("l.click:rotate",x+17,y+2,3,false,1,true)
+                    TIC.print("r.click:remove",x+17,y+9,3,false,1,true)
+                }
+            }
             TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
-            TIC.print("l.click:place/rotate",x+17,y+2,3,false,1,true)
-            TIC.print("r.click:remove",x+17,y+9,3,false,1,true)
         }
         TIC.rect(0,0,WIDTH,11,_buildPhase?13:9)
         TIC.print("Level:%(LEVEL+1)",2,2,0,false,1)
@@ -1632,19 +1645,23 @@ class GameMap {
         return _conveyorBelts[x][y]
     }
 
+    toBaseGate(tileId){
+        if(tileId==CONV_R||tileId==CONV_L||tileId==CONV_U||tileId==CONV_D){
+            return CONV_R
+        }
+        return 80+(tileId%16)
+    }
+
     removeUserItem(x,y) {
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)) return
+        currentTile=toBaseGate(currentTile)
         if(_conveyorBelts[x][y]!=null){
             // Removing belt
             _conveyorBelts[x][y]=null
-            if(currentTile==CONV_R||currentTile==CONV_L||currentTile==CONV_U||currentTile==CONV_D){
-                currentTile=CONV_R
-            }
         }else if(_gates[x][y]!=null){
             // Removing gate
             _gates[x][y]=null
-            currentTile=80+(currentTile%16)
         }
         updateGateCount(currentTile,1)
         var xstart=(LEVEL%8)*MAP_W
