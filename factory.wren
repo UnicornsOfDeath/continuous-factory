@@ -1669,11 +1669,12 @@ class GameMap {
         if(_conveyorBelts[x][y]!=null){
             // Removing belt
             _conveyorBelts[x][y]=null
+            updateGateCount(currentTile,1)
         }else if(_gates[x][y]!=null){
             // Removing gate
             _gates[x][y]=null
+            updateGateCount(currentTile,1)
         }
-        updateGateCount(currentTile,1)
         var xstart=(LEVEL%8)*MAP_W
         var ystart=(LEVEL/8).floor*MAP_H
         TIC.mset(xstart+x,ystart+y,0)
