@@ -1543,6 +1543,7 @@ class GameMap {
     availableGates{_availableGates}
 
     softreset(resetTiles) {
+        _started=false
         _jobs=[]
         _flyingjobs=[]
         _time=0
