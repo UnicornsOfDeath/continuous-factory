@@ -76,7 +76,6 @@ var WIN_GATE=83
 var LINUX_GATE=84
 var HAMMER_GATE=85
 
-
 // JOB
 
 var JOB_SPAWN_TICKS=120
@@ -493,12 +492,13 @@ class Button {
     bordercolor{_bordercolor}
     bordercolor=(value){_bordercolor=value}
 
-  construct new(x,y,w,h,bordercolor,fillcolor,hovercolor){
+  construct new(x,y,w,h,bordercolor,fillcolor,hovercolor,shadecolor){
     _x=x
     _y=y
     _bordercolor=bordercolor
     _fillcolor=fillcolor
     _hovercolor=hovercolor
+    _shadecolor=shadecolor
     _width=w
     _height=h
     _wasDown=false
@@ -510,18 +510,21 @@ class Button {
 
   draw() {
     // border
-    TIC.rectb(x,y,width,height,_textcolor)
+    TIC.rectb(x,y,width,height,_bordercolor)
+    // highlight/shading
+    TIC.rectb(x+1,y+1,width-2,height-2,_hovercolor)
+    TIC.rectb(x+2,y+2,width-3,height-3,_shadecolor)
     // fill
     var fc=_fillcolor
     if (_hover){
         fc=_hovercolor
         if (wasDown){
-            fc=_textcolor
+            fc=_shadecolor
         }
     }
-    TIC.rect(x+1,y+1,width-2,height-2,fc)
+    TIC.rect(x+2,y+2,width-4,height-4,fc)
     if(_hover&&_tooltip){
-        TIC.print(_tooltip,x-40,y+3,_textcolor,false,1,true)
+        TIC.print(_tooltip,x-40,y+3,_bordercolor,false,1,true)
     }
   }
  
@@ -547,8 +550,8 @@ class Button {
 
 class LabelButton is Button {
 
-  construct new(x,y,w,h,label,textcolor,fillcolor,hovercolor){
-    super(x,y,w,h,textcolor,fillcolor,hovercolor)
+  construct new(x,y,w,h,label,textcolor,fillcolor,hovercolor,shadecolor){
+    super(x,y,w,h,textcolor,fillcolor,hovercolor,shadecolor)
     _label=label
     _textcolor=textcolor
     _textw=TIC.print(label,0,-6)
@@ -567,8 +570,8 @@ class LabelButton is Button {
 }
 
 class ImageButton is Button {
-  construct new(x,y,w,h,sprite,spriteW,spriteH,bordercolor,fillcolor,hovercolor){
-    super(x,y,w,h,bordercolor,fillcolor,hovercolor)
+  construct new(x,y,w,h,sprite,spriteW,spriteH,bordercolor,fillcolor,hovercolor,shadecolor){
+    super(x,y,w,h,bordercolor,fillcolor,hovercolor,shadecolor)
     _sprite=sprite
     _spriteW=spriteW
     _spriteH=spriteH
@@ -716,8 +719,8 @@ class SplashState is SkipState {
 
 class TitleState is State {
 	construct new() {
-        _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",3,8,9)
-        _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE",3,8,9)
+        _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",0,2,3,1)
+        _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE",0,2,3,1)
     }
 
 	reset() {
@@ -727,7 +730,7 @@ class TitleState is State {
         _savelvl=TIC.pmem(0)
         if(_savelvl>0){
             _startbtn.x=40
-            _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE (%(_savelvl+1))",3,8,9)
+            _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE (%(_savelvl+1))",0,2,3,1)
         }
     }
 
@@ -857,7 +860,7 @@ class GameObject {
 
 class ToolbarButton is ImageButton {
     construct new(sprite,availableGates,x,y,atooltip){
-        super(x,y,14,12,sprite,1,1,0,1,2)
+        super(x,y,14,12,sprite,1,1,0,2,3,1)
         _sprite=sprite
         _availableGates=availableGates
         tooltip=atooltip
@@ -943,9 +946,9 @@ class MainState is State {
         _mouse=TIC.mouse()
         _toolbar=null
         _userDir=RIGHT
-        _startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
-        _stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
-        _resetbtn=LabelButton.new(105,1,50,9,"CLEAR",3,8,9)
+        _startbtn=null
+        _stopbtn=null
+        _resetbtn=null
         _speedbtn=null
         _fastforward=false
         _failed=false
@@ -960,10 +963,10 @@ class MainState is State {
         super.reset()
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _toolbar=Toolbar.new(_map.availableGates)
-		_startbtn=LabelButton.new(50,1,50,9,"START",3,8,9)
-		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,8,9)
-		_resetbtn=LabelButton.new(105,1,50,9,"RESET",3,8,9)
-        _speedbtn=LabelButton.new(103,1,20,9,">",0,1,2)
+		_startbtn=LabelButton.new(50,1,50,9,"START",0,2,3,1)
+		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,7,7,6)
+		_resetbtn=LabelButton.new(105,1,50,9,"CLEAR",3,7,7,6)
+        _speedbtn=LabelButton.new(103,1,20,9,">",3,9,9,8)
         softreset()
     }
 
@@ -1169,7 +1172,7 @@ class DeathState is SkipState {
 class WinState is State {
 	construct new() {
 		super()
-        _nextbtn=LabelButton.new(80,HEIGHT-68,80,20,"NEXT",3,8,9)
+        _nextbtn=LabelButton.new(80,HEIGHT-68,80,20,"NEXT",0,2,3,1)
         _flyingjobs=[]
     }
     winstate { _winstate }
@@ -1250,7 +1253,7 @@ class WinState is State {
 class HelpState is State {
 	construct new() {
         _read=false
-        _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",3,8,9)
+        _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",0,2,3,1)
     }
 
     reset(){
@@ -2033,10 +2036,10 @@ class Job is GameObject {
 // 000:5555555555555555555555555555555555555555555555555555555555555555
 // 016:00000000000000000f0f00f00f0ff0f00f0f0ff00f0f00f00f0f00f000000000
 // 017:0000000000000000090809999098089090980890909808900908889000000000
-// 018:9999999999993999999933999333333993333339999933999999399999999999
-// 019:9999999999939999993399999333333993333339993399999993999999999999
-// 020:9999999999933999993333999333333999933999999339999993399999999999
-// 021:9999999999933999999339999993399993333339993333999993399999999999
+// 018:9999999999900999900030999033330990333309900030999990099999999999
+// 019:9999999999900999990300099033330990333309990300099990099999999999
+// 020:9999999999900999990330999033330990033009990330999900009999999999
+// 021:9999999999000099990330999003300990333309990330999990099999999999
 // 032:9000009905225509052255090555550905333509053335099000009999999999
 // 033:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 034:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
@@ -2360,7 +2363,7 @@ class Job is GameObject {
 // 002:0123456789abcdea0123456789abcd53
 // 003:0123456789abcdef0123456789abcdef
 // 005:0123456789abcdedecab997654421100
-// 006:9744439acccefff4976ba91c55876614
+// 006:14444689abcedffddccba98779665433
 // 007:0000000000000789abffffffffffffff
 // 008:000000000000000047afffffffffffff
 // 009:000000000001231369bdebdeffffffff
@@ -2373,25 +2376,21 @@ class Job is GameObject {
 // 001:08f83800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800f800680000000000
 // 002:00c0007000500000310051008100c100d100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100c57000000000
 // 003:02004200420062007200820092009200a200b200b200c200c200d200e200e200e200e200f200f200f200f200f200f200f200f200f200f200f200f200507000000000
-// 004:068006500600f600f600f600060006000600060006000600060016001600260036004600460056006600760086009600a600b600c600d600e600f600580000000300
+// 004:088008500800f800f800f800080008000800080008000800080018001800280038004800480058006800780088009800a800b800c800d800e800f800580000000300
 // 005:080008400850087008c0080018002800380048004800580058006800780078008800880098009800a800a800b800c800c800e800e800e800e800f800309000000500
 // 006:8b006b404b702b000b400b700b000b400b700b400b700bb00b400b700bb00b701bb02be02b704bb05be07b708bb08be09b709bb0abe0cb70ebb0fbe0460000000000
 // 048:04002100410f610f910ee10ef10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10df10da02000000000
 // 049:64008400b400e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400604000000000
-// 050:1400640fa40ef40df40cf40bf409f408f408f408f409f409f408f408f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400b00000000000
-// 051:0400440074009400a400b400d400e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400300000000000
-// 052:040046006600760fa60fc60ee60ee60ee60df60df60cf60cf60cf60bf60bf60bf60df60df60df60df60df60cf60cf60cf60cf60cf60cf60cf60cf60c300000000000
-// 053:040045008500a50fe50ff50ef50ef50ef50df50df50cf50cf50cf50bf50bf50bf50df50df50df50df50df50cf50cf50cf50cf50cf50cf50cf50cf50c105000000000
-// 054:64008400b400e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400604000030000
-// 055:f400f400f400040f450f950ef50ef50ef50df50df50cf50cf50cf50bf50bf50bf50df50df50df50df50df50cf50cf50cf50cf50cf50cf50cf50cf50c402000000000
-// 056:06000100010001000100110011001100110021002100310051006100610071007100810081009100a100a100b100c100c100d100e100f100f100f100300000000000
+// 050:71009100a100b100c100c100c100c100c100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100d100e100520000000000
+// 052:060046006600760086009600a600a600a600a600a600b600b600b600b600b600b600b600c600c600c600c600c600c600d600d600d600d600d600e600450000000000
+// 053:04001100210021003100410041005100610061007100810081009100a100b100b100c100c100d100d100c100c100c100c100c100c100c100c100c100200000000000
+// 054:04f7110021003100410051006100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100a07000000000
 // 057:27005700670077008700870087009700a700a700b700b700b700b700b700c700d700d700e700f700f700f700f700f700f700f700f700f700f700f700400000000000
 // 058:d800b800a800880078006800680068006800680068006800680068006800680068006800680068006800680068006800680068006800680068006800400000000000
 // 059:720032000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200200000000000
 // 060:37000700070037005700770087009700a700a700b701b702b701c700c70fc70ef70ff700f700f700f700f700f700f700f700f700f700f700f700f700400000f10098
 // 061:01001100210021003100410041005100610061007100810081009100a100b100b100c100c100d100d100c100c100c100c100c100c100c100c100c100200000000000
 // 062:0100110021003100410051006100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100207000000000
-// 063:080008000800080008000800080008000800180018002800380038004800480048004800480048005800580058006800680068006800780078007800404000000000
 // </SFX>
 
 // <PATTERNS>
