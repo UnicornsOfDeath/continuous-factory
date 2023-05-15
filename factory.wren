@@ -982,6 +982,27 @@ class GameObject {
     }
 }
 
+class StarJob is GameObject {
+    construct new(x,y) {
+        super(x,y,Rect.new(0,0,16,16))
+        _ticks=0
+    }
+    update(){
+        super.update()
+        if(_ticks>0){
+            _ticks=_ticks-1
+        }
+        if(_ticks==0){
+            _ticks=99
+        }
+    }
+    draw() {
+        var frame=((99-_ticks)/(100/5)).floor
+        var d=((_ticks)/100*Num.tau).sin
+        TIC.spr(359+frame*32,x,y-d*3,COLOR_KEY,1,0,0,2,2)
+    }
+}
+
 class ToolbarButton is ImageButton {
     construct new(sprite,availableGates,x,y,atooltip){
         super(x,y,14,12,sprite,1,1,0,2,3,1)
@@ -1441,6 +1462,7 @@ class HelpState is State {
 class StarState is State{
     construct new(){
         _stargen=StarGenerator.new(200,1)
+        _job=StarJob.new(WIDTH/2-32,HEIGHT*0.6)
     }
 
     reset(){
@@ -1470,11 +1492,13 @@ class StarState is State{
     draw() {
         TIC.cls(0)
         _stargen.draw()
+        _job.draw()
     }
 
     update() {
         TIC.poke(0x3FFB,0)  // hide cursor
         _stargen.update()
+        _job.update()
     }
 }
 
@@ -2379,7 +2403,7 @@ class Job is GameObject {
 // 116:9800000080000000800000000000000000000000000000000000000000000000
 // 117:cccccccccdddddddcdddddddcdddddddcdddddddcdddddfdcddddfdf90000000
 // 118:ccccccc0ddddddd0ddddddd0ddddddd0dddfdfd0fdfdfdf0dfdfdff000000009
-// 119:9cffffdf99cffdfd99cfffdf99ccfdfc999cffdc9999cdcd9999cfcc99999cc9
+// 119:9cffffdf99cffdfd99cfffdf999cfdfc999cffdc9999cdcd9999cfcc99999cc9
 // 120:dcdc9999cddc9999cdc99999ddc99999dc999999c99999999999999999999999
 // 121:cfffffdfcffffdfd9cffdfdf99cffdfd999cffdf9999cdfd99999ccf9999999c
 // 122:cdfdfffccfdfffcccdfdfc99cfdfc999cdfc9999cfc99999cc999999c9999999
@@ -2388,9 +2412,25 @@ class Job is GameObject {
 // 128:99cfffff99cfffff99cfffff990dfdfd99cfdfdf990dfdfd9990000099994444
 // 129:fffffffffdfdfdfddfdfdfdffdfdfdfddfdfdfdffdfdfdfd0000000044444444
 // 130:fffff099fdfdf099dfdfd099fdfdf099dfdfd099fdfdf0990000049944444499
+// 135:9999999999999999999999999999cc99999cfdc999cfffdc9cfffffd9cffffff
+// 136:999999999999999999999999999999c999999cc99999cdc9cccccdc9fcfffdc9
 // 144:9900000000000000000000000000000000000000000000000000000000000000
+// 151:cfffffffcfffffffcffffffd9cfffffc9cffffdc99cfffcf999cfdcf9999cccc
+// 152:dcffdcc9cffddcc9cffdcc99ffddcc99ffdcc999fdcc9999dcc99999cc999999
+// 167:9999999999999999999999999999999999999999999c999999cdc9999cdfdcc9
+// 168:9999999999999999999999999999999999999999999999999999999c999999cc
+// 183:9cfdfffccffffffdcfffffdfcffffdfc9cffffdc9cfffdcd99ccffcf9999cccc
+// 184:ccccccfccddffffccdfffffcdfffffdcfffffdc9ffffdc99ffddc999ccc99999
+// 199:999999999999999999999999999999999999999999999999999cccc999cffffc
+// 200:999999999999999999999999999999999999999999999999999ccc99cccfffc9
+// 215:9cffffff9dfffffdcffffffdcffffffccdcfffdcc99cfdcd9999cdcd99999ccc
+// 216:cfdffffccddffffccdfffffcddffffdcdfccffc9fc99cdc9c9999c9999999999
+// 231:99999999999999999999999999999ccc9999cdff999cdfff99cdffff9cdffffd
+// 232:99999999999999999999999999999999c999ccc9ccccffdcdccdfffcdcddffdc
 // 238:3339999939999999399999999999999999999999999999999999999999999999
 // 239:9999933399999993999999939999999999999999999999999999999999999999
+// 247:cdffffdfcffffffdccffffdd99cffdfc999cffdc9999cfcd9999cdcc99999cc9
+// 248:dcdfffc9cddfffc9cdfccd99ddc99c99dc999999c99999999999999999999999
 // 254:9999999999999999999999999999999999999999399999993999999933399999
 // 255:9999999999999999999999999999999999999999999999939999999399999333
 // </SPRITES>
