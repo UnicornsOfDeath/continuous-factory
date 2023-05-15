@@ -1,12 +1,13 @@
 // title:   Continous Factory
 // author:  unicorns of DEATH
-// desc:    tbd
-// site:    tbd
+// desc:    Conveyor belt puzzle game
+// site:    https://github.com/UnicornsOfDeath/continuous-factory
 // license: MIT License
-// version: 0.1
+// version: 0.2
 // script:  wren
 // saveid:  continuous-factory
 // pal:     system-mini-16
+// input:   mouse
 
 import "random" for Random
 
@@ -35,6 +36,7 @@ var SFXINCOMPLETE=5
 var SFXLEVELEND=6
 var RANDOM=Random.new()
 var FONTH=5
+var IDLETICKS=3600
 
 var UP=0
 var RIGHT=1
@@ -96,6 +98,95 @@ var JOB_TICKS=90
 // 60 - piano
 // 61 - bass
 // 62 - bass short
+
+// Star colors, brightest to darkest
+var COLORS=[3,2,1,0]
+var SPEEDMIN=0.001
+var SPEEDMAX=0.02
+
+class Star {
+    construct new(){
+        _x=WIDTH/2
+        _y=HEIGHT/2
+        _dx=RANDOM.float()-0.5
+        _dy=RANDOM.float()-0.5
+        var n=norm(_dx,_dy)
+        _dx=n[0]
+        _dy=n[1]
+        // Square rand to skew more slow stars
+        var s=RANDOM.float()*RANDOM.float()*(SPEEDMAX-SPEEDMIN)+SPEEDMIN
+        _ddx=_dx*s
+        _ddy=_dy*s
+        _dx=_dx*s
+        _dy=_dy*s
+        _mag=RANDOM.float()+0.5
+    }
+
+    distance(x1,y1,x2,y2){
+        var dx=x1-x2
+        var dy=y1-y2
+        return (dx*dx+dy*dy).sqrt
+    }
+
+    norm(x,y){
+        var d=distance(x,y,0,0)
+        if (d==0){
+            return [1,0]
+        }
+        return [x/d,y/d]
+    }
+
+    update(){
+        _x=_x+_dx
+        _y=_y+_dy
+        _dx=_dx+_ddx
+        _dy=_dy+_ddy
+    }
+
+    alive{_x>=0&&_x<=WIDTH&&_y>=0&&_y<=HEIGHT}
+
+    draw(){
+        var dfactor=((_x-WIDTH/2).abs+(_y-HEIGHT/2).abs)/(WIDTH/2)
+        var sfactor=(_dx.abs+_dy.abs-SPEEDMIN)/(SPEEDMAX-SPEEDMIN)/25
+        var mfactor=(dfactor*sfactor).sqrt
+        var i=COLORS.count-(mfactor*_mag*COLORS.count).floor.min(COLORS.count-1)-1
+        TIC.pix(_x,_y,COLORS[i])
+    }
+}
+
+class StarGenerator {
+    construct new(n,interval){
+        _n=n
+        _interval=interval
+        _counter=0
+        _stars=[]
+    }
+
+    update(){
+        // Add new stars
+        if(_stars.count<_n && _counter==0){
+            _stars.add(Star.new())
+            _counter=_interval
+        }
+        if(_counter>0){
+            _counter=_counter-1
+        }
+        // Move stars
+        _stars.each{|s|
+            s.update()
+            // Remove stars that are out of bounds
+            if(!s.alive){
+                _stars.remove(s)
+            }
+        }
+    }
+
+    draw(){
+        _stars.each{|s|
+            s.draw()
+        }
+    }
+}
 
 class ChunkyFont {
 
@@ -735,6 +826,13 @@ class TitleState is State {
 	construct new() {
         _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",0,2,3,1)
         _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE",0,2,3,1)
+        _idlecounter=IDLETICKS
+        _mouse=TIC.mouse()
+    }
+
+    idlestate { _idlestate }
+    idlestate=(value) {
+        _idlestate=value
     }
 
 	reset() {
@@ -760,6 +858,11 @@ class TitleState is State {
 			nextstate.reset()
 			return nextstate
         }
+        if(_idlecounter<=0){
+            finish()
+            idlestate.reset()
+            return idlestate
+        }
         return super.next()
     }
 
@@ -776,6 +879,13 @@ class TitleState is State {
         _startbtn.update()
         if(_savelvl>0){
             _continuebtn.update()
+        }
+        var mousePrev=_mouse
+        _mouse=TIC.mouse()
+        if(_mouse[0]==mousePrev[0]&&_mouse[1]==mousePrev[1]){
+            _idlecounter=_idlecounter-1
+        }else{
+            _idlecounter=IDLETICKS
         }
     }
 
@@ -1325,6 +1435,46 @@ class HelpState is State {
         y=y+fh*2
 		TIC.print("Good luck and SYNERGIZE!",x,y,0,false,1,true)
         _startbtn.draw()
+    }
+}
+
+class StarState is State{
+    construct new(){
+        _stargen=StarGenerator.new(200,1)
+    }
+
+    reset(){
+        super.reset()
+        if(!MUSGAMEPLAYING){
+		    TIC.music(MUSGAME,-1,-1,true)
+            MUSGAMEPLAYING=true
+        }
+    }
+
+    finish(){
+        super.finish()
+        TIC.poke(0x3FFB,128)  // show cursor
+    }
+
+    next(){
+        var mouse=TIC.mouse()
+        if(mouse[2]){
+            TIC.sfx(SFXNEXT)
+            finish()
+            nextstate.reset()
+            return nextstate
+        }
+        return super.next()
+    }
+
+    draw() {
+        TIC.cls(0)
+        _stargen.draw()
+    }
+
+    update() {
+        TIC.poke(0x3FFB,0)  // hide cursor
+        _stargen.update()
     }
 }
 
@@ -1897,15 +2047,18 @@ class Game is TIC{
 	construct new(){
         var splashState = SplashState.new()
         var titleState = TitleState.new()
+        var starState = StarState.new()
         var helpState = HelpState.new()
         var mainState = MainState.new()
         var winState = WinState.new()
         splashState.nextstate = titleState
         titleState.nextstate = helpState
+        titleState.idlestate = starState
+        starState.nextstate = titleState
         helpState.nextstate = mainState
         mainState.winstate = winState
         winState.nextstate = mainState
-        winState.winstate = splashState
+        winState.winstate = starState
         _state=splashState
         _state.reset()
 	}
