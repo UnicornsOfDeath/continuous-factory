@@ -654,6 +654,12 @@ class Button {
     _wasHover=_hover
     _wasDown=left
   }
+
+  reset(){
+    _wasHover=false
+    _wasDown=false
+    _clicked=false
+  }
 }
 
 class LabelButton is Button {
@@ -825,12 +831,21 @@ class SplashState is SkipState {
     }
 }
 
+class LevelButton is LabelButton{
+    construct new(x,y,w,h,level,textcolor,fillcolor,hovercolor,shadecolor){
+        super(x,y,w,h,"Level %(level+1)",textcolor,fillcolor,hovercolor,shadecolor)
+        _level=level
+    }
+    level{_level}
+}
+
 class TitleState is State {
 	construct new() {
         _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",0,2,3,1)
         _continuebtn=null
         _creditsbtn=LabelButton.new(85,HEIGHT-18,60,7,"",0,0,0,0)
         _idlecounter=IDLETICKS
+        _levelselecting=false
         _mouse=TIC.mouse()
     }
 
@@ -843,10 +858,15 @@ class TitleState is State {
 		super.reset()
 		TIC.music(MUSTITLE,-1,-1,false)
         MUSGAMEPLAYING=false
-        _savelvl=TIC.pmem(0)
-        if(_savelvl>0){
+        var savelvl=TIC.pmem(0)
+        if(savelvl>0){
             _startbtn.x=40
-            _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE (%(_savelvl+1))",0,2,3,1)
+            _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"LEVEL SELECT",0,2,3,1)
+            _levelselectbtns=[]
+            for (i in 0..savelvl){
+                _levelselectbtns.add(LevelButton.new(40+(i%2)*82,12+(i/2).floor*14,78,12,i,0,2,3,1))
+            }
+            _backbtn=LabelButton.new(80,HEIGHT-32,78,20,"BACK",0,2,3,1)
         }
     }
 
@@ -857,12 +877,23 @@ class TitleState is State {
 			return nextstate
         }
         if(_continuebtn.clicked){
-            LEVEL=_savelvl
-            finish()
-			nextstate.reset()
-			return nextstate
+            _levelselecting=true
+            _continuebtn.reset()
+        }
+        for(btn in _levelselectbtns){
+            if(btn.clicked){
+                LEVEL=btn.level
+                finish()
+                nextstate.reset()
+                return nextstate
+            }
+        }
+        if(_backbtn.clicked){
+            _levelselecting=false
+            _backbtn.reset()
         }
         if(_idlecounter<=0||_creditsbtn.clicked){
+            _creditsbtn.reset()
             finish()
             idlestate.reset()
             return idlestate
@@ -880,17 +911,24 @@ class TitleState is State {
 
     update(){
         super.update()
-        _startbtn.update()
-        if(_savelvl>0){
-            _continuebtn.update()
-        }
-        _creditsbtn.update()
-        var mousePrev=_mouse
-        _mouse=TIC.mouse()
-        if(_mouse[0]==mousePrev[0]&&_mouse[1]==mousePrev[1]){
-            _idlecounter=_idlecounter-1
+        if(!_levelselecting){
+            _startbtn.update()
+            if(_continuebtn){
+                _continuebtn.update()
+            }
+            _creditsbtn.update()
+            var mousePrev=_mouse
+            _mouse=TIC.mouse()
+            if(_mouse[0]==mousePrev[0]&&_mouse[1]==mousePrev[1]){
+                _idlecounter=_idlecounter-1
+            }else{
+                _idlecounter=IDLETICKS
+            }
         }else{
-            _idlecounter=IDLETICKS
+            _levelselectbtns.each{|btn|
+                btn.update()
+            }
+            _backbtn.update()
         }
     }
 
@@ -902,19 +940,26 @@ class TitleState is State {
         var w=172
         var h=130
         drawWindow(x,y,w,h)
-        y=y+3
-        TIC.spr(268,x+60,y,2,2,0,0,4,3)
-        y=y+45
-		printShadow("CONTINUOUS",x+30,y,0,1,2,false)
-        y=y+16
-		printShadow("FACTORY",x+30,y,0,1,3,false)
-        y=y+50
-		printShadow("Copyright (c) UnicornsOfDeath Corp 1985-1993",x+4,y,0,1,1,true)
-        y=y+7
-		printShadow("All rights reserved.",x+50,y,0,1,1,true)
-        _startbtn.draw()
-        if(_savelvl>0){
-            _continuebtn.draw()
+        if(!_levelselecting){
+            y=y+3
+            TIC.spr(268,x+60,y,2,2,0,0,4,3)
+            y=y+45
+            printShadow("CONTINUOUS",x+30,y,0,1,2,false)
+            y=y+16
+            printShadow("FACTORY",x+30,y,0,1,3,false)
+            y=y+50
+            printShadow("Copyright (c) UnicornsOfDeath Corp 1985-1993",x+4,y,0,1,1,true)
+            y=y+7
+            printShadow("All rights reserved.",x+50,y,0,1,1,true)
+            _startbtn.draw()
+            if(_continuebtn){
+                _continuebtn.draw()
+            }
+        }else{
+            _levelselectbtns.each{|btn|
+                btn.draw()
+            }
+            _backbtn.draw()
         }
     }
 
