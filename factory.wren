@@ -828,7 +828,8 @@ class SplashState is SkipState {
 class TitleState is State {
 	construct new() {
         _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",0,2,3,1)
-        _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"CONTINUE",0,2,3,1)
+        _continuebtn=null
+        _creditsbtn=LabelButton.new(85,HEIGHT-18,60,7,"",0,0,0,0)
         _idlecounter=IDLETICKS
         _mouse=TIC.mouse()
     }
@@ -861,7 +862,7 @@ class TitleState is State {
 			nextstate.reset()
 			return nextstate
         }
-        if(_idlecounter<=0){
+        if(_idlecounter<=0||_creditsbtn.clicked){
             finish()
             idlestate.reset()
             return idlestate
@@ -883,6 +884,7 @@ class TitleState is State {
         if(_savelvl>0){
             _continuebtn.update()
         }
+        _creditsbtn.update()
         var mousePrev=_mouse
         _mouse=TIC.mouse()
         if(_mouse[0]==mousePrev[0]&&_mouse[1]==mousePrev[1]){
