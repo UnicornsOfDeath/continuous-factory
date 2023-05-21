@@ -1179,6 +1179,7 @@ class MainState is State {
         _stopbtn=null
         _resetbtn=null
         _speedbtn=null
+		_backbtn=LabelButton.new(WIDTH-13,1,12,9,"X",3,7,7,6)
         _fastforward=false
         _failed=false
         _deathticks=60
@@ -1186,6 +1187,10 @@ class MainState is State {
     winstate { _winstate }
     winstate=(value) {
         _winstate=value
+    }
+    titlestate { _titlestate }
+    titlestate=(value) {
+        _titlestate=value
     }
 
     reset() {
@@ -1297,6 +1302,7 @@ class MainState is State {
                 _speedbtn.label=_fastforward?">>":">"
             }
         }
+        _backbtn.update()
 
         if (_failed){
             if (_deathticks>0) {
@@ -1319,7 +1325,19 @@ class MainState is State {
             winstate.reset()
             return winstate
         }
+        if(_backbtn.clicked){
+            finish()
+            titlestate.reset()
+            return titlestate
+        }
 		return super()
+    }
+
+    finish(){
+        // Reset border color
+        TIC.vbank(0)
+        TIC.poke(0x03FF8,0)
+        super.finish()
     }
 
     failState() {
@@ -1400,19 +1418,18 @@ class MainState is State {
         }
 
         if(_buildPhase){
-            TIC.print("Build Phase",WIDTH-40,3,0,false,1,true)
+            TIC.print("Build Phase",WIDTH-54,3,0,false,1,true)
             _startbtn.draw()
             _resetbtn.draw()
             // Toolbar window bg
             drawWindow(WIDTH-20,13,25,HEIGHT-35)
             _toolbar.draw()
         }else{
-            var time=(_map.time/60).floor
-            TIC.print("Time:%(time)",WIDTH-75,3,0,false,1,true)
             _stopbtn.draw()
             _speedbtn.draw()
-            TIC.print("Folders:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-48,3,0,false,1,true)
+            TIC.print("Folders:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-56,3,0,false,1,true)
         }
+        _backbtn.draw()
     }
 }
 
@@ -1438,9 +1455,9 @@ class WinState is State {
         _nextbtn=LabelButton.new(80,HEIGHT-68,80,20,"NEXT",0,2,3,1)
         _flyingjobs=[]
     }
-    winstate { _winstate }
-    winstate=(value) {
-        _winstate=value
+    starstate { _starstate }
+    starstate=(value) {
+        _starstate=value
     }
 
 	reset() {
@@ -1456,8 +1473,8 @@ class WinState is State {
             finish()
             if (LEVEL==NUM_LEVELS) {
                 LEVEL=0
-                winstate.reset()
-                return winstate
+                starstate.reset()
+                return starstate
             }
             LEVEL=LEVEL+1
             if(LEVEL>TIC.pmem(0)){
@@ -2208,8 +2225,9 @@ class Game is TIC{
         starState.nextstate = titleState
         helpState.nextstate = mainState
         mainState.winstate = winState
+        mainState.titlestate = titleState
         winState.nextstate = mainState
-        winState.winstate = starState
+        winState.starstate = starState
         _state=splashState
         _state.reset()
 	}
