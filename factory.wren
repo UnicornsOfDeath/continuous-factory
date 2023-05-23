@@ -17,7 +17,7 @@ var MAP_W=30
 var MAP_H=17
 var LEVEL=0
 var TRICKY_LEVELS=6
-var NUM_LEVELS=8
+var NUM_LEVELS=9
 var COLOR_BG=5
 var COLOR_KEY=9
 var MUSSPLASH=0
@@ -863,8 +863,10 @@ class TitleState is State {
             _startbtn.x=40
             _continuebtn=LabelButton.new(122,HEIGHT-45,78,20,"LEVEL SELECT",0,2,3,1)
             _levelselectbtns=[]
-            for (i in 0..savelvl){
-                _levelselectbtns.add(LevelButton.new(40+(i%2)*82,12+(i/2).floor*14,78,12,i,0,2,3,1))
+            for(i in 0..savelvl.max(TRICKY_LEVELS-1)){
+                var c1=i<TRICKY_LEVELS?9:2
+                var c2=i<TRICKY_LEVELS?8:1
+                _levelselectbtns.add(LevelButton.new(40+(i%2)*82,12+(i/2).floor*14,78,12,i,0,c1,3,c2))
             }
             _backbtn=LabelButton.new(80,HEIGHT-32,78,20,"BACK",0,2,3,1)
         }
@@ -1179,7 +1181,7 @@ class MainState is State {
         _stopbtn=null
         _resetbtn=null
         _speedbtn=null
-		_backbtn=LabelButton.new(WIDTH-13,1,12,9,"X",3,7,7,6)
+		_backbtn=LabelButton.new(WIDTH-13,1,12,9,"X",0,7,3,6)
         _fastforward=false
         _failed=false
         _deathticks=60
@@ -1198,9 +1200,9 @@ class MainState is State {
         _map=GameMap.new(LEVEL, Fn.new { failState() })
         _toolbar=Toolbar.new(_map.availableGates)
 		_startbtn=LabelButton.new(50,1,50,9,"START",0,2,3,1)
-		_stopbtn=LabelButton.new(50,1,50,9,"STOP",3,7,7,6)
-		_resetbtn=LabelButton.new(105,1,50,9,"CLEAR",3,7,7,6)
-        _speedbtn=LabelButton.new(103,1,20,9,">",3,9,9,8)
+		_stopbtn=LabelButton.new(50,1,50,9,"STOP",0,7,3,6)
+		_resetbtn=LabelButton.new(105,1,50,9,"CLEAR",0,7,3,6)
+        _speedbtn=LabelButton.new(103,1,20,9,">",0,9,3,8)
         softreset()
     }
 
@@ -1404,7 +1406,7 @@ class MainState is State {
         TIC.vbank(0)
         TIC.poke(0x03FF8,_buildPhase?0:9)
         drawWindow(-2,-2,WIDTH+4,14)
-        TIC.print("Level:%(LEVEL+1)",2,2,0,false,1)
+        TIC.print("Level:%(LEVEL+1)",2,3,0,false,1)
 
         // Draw next jobs window
         drawWindow(2,HEIGHT-20,WIDTH-4,19)
@@ -1471,12 +1473,12 @@ class WinState is State {
     next() {
         if(_nextbtn.clicked){
             finish()
+            LEVEL=LEVEL+1
             if (LEVEL==NUM_LEVELS) {
                 LEVEL=0
                 starstate.reset()
                 return starstate
             }
-            LEVEL=LEVEL+1
             if(LEVEL>TIC.pmem(0)){
                 TIC.pmem(0,LEVEL)
             }
@@ -1489,7 +1491,7 @@ class WinState is State {
     update(){
         super.update()
         _nextbtn.update()
-        if(LEVEL==NUM_LEVELS){
+        if(LEVEL+1==NUM_LEVELS){
             if(_flyingjobs.count<10){
                 _flyingjobs.add(FlyingJob.new(RANDOM.int(0,WIDTH),RANDOM.int(30,HEIGHT)))
             }
@@ -1510,20 +1512,18 @@ class WinState is State {
         var w=200
         var h=55
         drawWindow(x,y,w,h)
-        if(LEVEL==NUM_LEVELS){
+        if(LEVEL+1==NUM_LEVELS){
             TIC.print("CONGRATULATIONS!",x+7,y+5,0,false,2)
             y=y+14
             TIC.print("Game complete!",x+7,y+5,0,false,1)
+            _flyingjobs.each{|fj|
+                fj.draw()
+            }
         }else{
             TIC.print("LEVEL %(LEVEL+1) COMPLETE",x+7,y+5,0,false,2)
             if(LEVEL+1==TRICKY_LEVELS){
                 y=y+14
                 TIC.print("Challenging levels ahead!",x+7,y+5,0,false,1)
-            }
-        }
-        if(LEVEL==NUM_LEVELS){
-            _flyingjobs.each{|fj|
-                fj.draw()
             }
         }
         _nextbtn.draw()
