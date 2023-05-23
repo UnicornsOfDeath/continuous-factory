@@ -85,6 +85,9 @@ var JOB_SPAWN_TICKS=120
 var CONVEYOR_TICKS=60
 var JOB_TICKS=90
 
+// Map data, for resetting
+var MAPRESETS=[]
+
 // Music instruments
 // 48 - BD
 // 49 - HH
@@ -1201,7 +1204,7 @@ class MainState is State {
         _toolbar=Toolbar.new(_map.availableGates)
 		_startbtn=LabelButton.new(50,1,50,9,"START",0,2,3,1)
 		_stopbtn=LabelButton.new(50,1,50,9,"STOP",0,7,3,6)
-		_resetbtn=LabelButton.new(105,1,50,9,"CLEAR",0,7,3,6)
+		_resetbtn=LabelButton.new(105,1,50,9,"RESET",0,7,3,6)
         _speedbtn=LabelButton.new(103,1,20,9,">",0,9,3,8)
         softreset()
     }
@@ -1235,6 +1238,7 @@ class MainState is State {
             }else if(_resetbtn.clicked){
                 TIC.sfx(SFXNEXT)
                 _map.softreset(true)
+                _toolbar=Toolbar.new(_map.availableGates)
             }else{
                 _mouseX=_mouse[0]
                 _mouseY=_mouse[1]
@@ -1819,6 +1823,7 @@ class Gate is GameObject {
 class GameMap {
     
     construct new(i, killStateFunction) {
+        _killStateFunction=killStateFunction
         _started=false
         _time=0
         _userTiles=[EMPTY_TILE,CONV_U,CONV_D,CONV_L,CONV_R]
@@ -1826,59 +1831,17 @@ class GameMap {
         _userTiles.addAll((80..85).toList)
         _userTiles.addAll((96..101).toList)
         _userTiles.addAll((112..117).toList)
-        _conveyorBelts=[]
-        _killStateFunction=killStateFunction
-        for(i in 1..MAP_H) {
-            _conveyorBelts.add(List.filled(MAP_W, null))
-        }
-        _factories=[]
-        _gates=[]
-        _availableGates={}
-        for(i in 1..MAP_H) {
-            _gates.add(List.filled(MAP_W, null))
-        }
+
+        clearTiles()
         _building=true
         for(x in 0..MAP_W/2) {
             for(y in 0..MAP_H/2){
                 var tileId=getTileId(x,y)
-                if(tileId==IN_TILE){
-                    _inTile=InTile.new(x,y,_spawnJobs)
-                }else if(tileId==OUT_TILE){
-                    _outTile=OutTile.new(x,y)
-                }else if(tileId==CONV_R){
-                    addConveyorBelt(x,y,RIGHT)
-                }else if(tileId==CONV_L){
-                    addConveyorBelt(x,y,LEFT)
-                }else if(tileId==CONV_U){
-                    addConveyorBelt(x,y,UP)
-                }else if(tileId==CONV_D){
-                    addConveyorBelt(x,y,DOWN)
-                }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
-                    _factories.add(Factory.new(x,y,tileId))
-                }else if(tileId>=64&&tileId<=117&&(tileId%16)<6){
-                    _gates[x][y]=Gate.new(x,y,tileId)
-                }
+                setTile(x,y,tileId)
             }
         }
         _building=false
-        // Load available gates to place
-        for(x in MAP_W-1..0){
-            for(y in MAP_H-1..9){
-                var tileId=getTileId(x,y)
-                if(tileId==CONV_R||tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
-                    if(_availableGates[tileId]==null){
-                        _availableGates[tileId]=0
-                    }
-                    _availableGates[tileId]=_availableGates[tileId]+1
-                }else{
-                    break
-                }
-            }
-            if(_availableGates.count==0){
-                // No more gates
-                break
-            }
-        }
+        loadAvailableGates()
         softreset(false)
     }
 
@@ -1888,6 +1851,39 @@ class GameMap {
     jobsDone{_jobsDone}
     haswon{jobsDone==jobsCount&&_flyingjobs.count==0}
     availableGates{_availableGates}
+
+    clearTiles(){
+        _conveyorBelts=[]
+        for(i in 1..MAP_H) {
+            _conveyorBelts.add(List.filled(MAP_W, null))
+        }
+        _factories=[]
+        _gates=[]
+        _availableGates={}
+        for(i in 1..MAP_H) {
+            _gates.add(List.filled(MAP_W, null))
+        }
+    }
+
+    setTile(x,y,tileId){
+        if(tileId==IN_TILE){
+            _inTile=InTile.new(x,y,_spawnJobs)
+        }else if(tileId==OUT_TILE){
+            _outTile=OutTile.new(x,y)
+        }else if(tileId==CONV_R){
+            addConveyorBelt(x,y,RIGHT)
+        }else if(tileId==CONV_L){
+            addConveyorBelt(x,y,LEFT)
+        }else if(tileId==CONV_U){
+            addConveyorBelt(x,y,UP)
+        }else if(tileId==CONV_D){
+            addConveyorBelt(x,y,DOWN)
+        }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
+            _factories.add(Factory.new(x,y,tileId))
+        }else if(tileId>=64&&tileId<=117&&(tileId%16)<6){
+            _gates[x][y]=Gate.new(x,y,tileId)
+        }
+    }
 
     softreset(resetTiles) {
         _started=false
@@ -1930,23 +1926,39 @@ class GameMap {
         }
         _jobsDone=0
         if(resetTiles){
-            _conveyorBelts.each {|conveyorBeltColumn|
-                conveyorBeltColumn.each {|conveyorBelt|
-                    if(conveyorBelt!=null) {
-                        var tileX=(conveyorBelt.x/16).floor
-                        var tileY=(conveyorBelt.y/16).floor
-                        tryRemoveUserItem(tileX, tileY)
-                    }
+            clearTiles()
+            _building=true
+            var i=0
+            for(y in 0..MAP_H/2){
+                for(x in 0..MAP_W/2) {
+                    tryRemoveUserItem(x,y)
+                    var tileId=MAPRESETS[LEVEL][i]
+                    setTile(x,y,tileId)
+                    i=i+1
                 }
             }
-            _gates.each {|gateColumn|
-                gateColumn.each {|gate|
-                    if(gate!=null) {
-                        var tileX=(gate.x/16).floor
-                        var tileY=(gate.y/16).floor
-                        tryRemoveUserItem(tileX, tileY)
+            _building=false
+            loadAvailableGates()
+        }
+    }
+
+    loadAvailableGates(){
+        // Load available gates to place
+        for(x in MAP_W-1..0){
+            for(y in MAP_H-1..9){
+                var tileId=getTileId(x,y)
+                if(tileId==CONV_R||tileId==DISK_GATE||tileId==APPLE_GATE||tileId==GLASS_GATE||tileId==WIN_GATE||tileId==LINUX_GATE||tileId==HAMMER_GATE){
+                    if(_availableGates[tileId]==null){
+                        _availableGates[tileId]=0
                     }
+                    _availableGates[tileId]=_availableGates[tileId]+1
+                }else{
+                    break
                 }
+            }
+            if(_availableGates.count==0){
+                // No more gates
+                break
             }
         }
     }
@@ -2230,6 +2242,20 @@ class Game is TIC{
         winState.starstate = starState
         _state=splashState
         _state.reset()
+
+        // Load map reset data
+        for(level in 0..NUM_LEVELS-1){
+            var leveldata=[]
+            var xstart=(level%8)*MAP_W
+            var ystart=(level/8).floor*MAP_H
+            for(y in 0..MAP_H/2){
+                for(x in 0..MAP_W/2) {
+                    var tileId=TIC.mget(xstart+x,ystart+y)
+                    leveldata.add(tileId)
+                }
+            }
+            MAPRESETS.add(leveldata)
+        }
 	}
 	
 	TIC(){
@@ -2239,12 +2265,6 @@ class Game is TIC{
         _state.draw()
         _state=_state.next()
 	}
-}
-
-class Request {
-    construct new() {
-
-    }
 }
 
 class FlyingJob is GameObject {
