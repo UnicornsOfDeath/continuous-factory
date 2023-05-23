@@ -65,6 +65,7 @@ var CONV_R=18
 var CONV_L=19
 var CONV_U=20
 var CONV_D=21
+var ERASER=22
 var DISK=32
 var APPLE=33
 var GLASS=34
@@ -594,6 +595,7 @@ class Button {
     width { _width }
     height { _height }
     wasDown { _wasDown }
+    wasDown=(value){_wasDown=value}
     hover { _hover }
     hover=(value){_hover=value}
     clicked { _clicked }
@@ -1143,6 +1145,7 @@ class Toolbar {
                 ypos=ypos+dy
             }
         }
+        _buttons[ERASER]=ToolbarButton.new(ERASER,{},xpos,HEIGHT-37,"erase")
 
         _selection=CONV_R
     }
@@ -1164,11 +1167,14 @@ class Toolbar {
     draw() {
         for (button in _buttons) {
             var oldhover=button.value.hover
+            var oldwasdown=button.value.wasDown
             if(_selection==button.key){
                 button.value.hover=true
+                button.value.wasDown=true
             }
             button.value.draw()
             button.value.hover=oldhover
+            button.value.wasDown=oldwasdown
         }
     }
 }
@@ -1250,7 +1256,9 @@ class MainState is State {
                     if(_map.isInBounds(tileX,tileY)){
                         var existingBelt=_map.getConveyorBelt(tileX,tileY)
                         var existingGate=_map.getGate(tileX,tileY)
-                        if(existingBelt!=null) {
+                        if(_toolbar.selection==ERASER){
+                            _map.tryRemoveUserItem(tileX,tileY)
+                        }else if(existingBelt!=null) {
                             _userDir=(existingBelt.dir+1)%4
                             _map.updateConveyorBeltDir(tileX,tileY,_userDir)
                             _toolbar.selection=ConveyorBelt.dirToMapTile(_userDir)
@@ -1389,7 +1397,9 @@ class MainState is State {
                 var useritem=_map.getTileId(tileX,tileY)
                 if(useritem==0){
                     TIC.spr(_toolbar.selection,x+2,y+2,COLOR_KEY)
-                    if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
+                    if(_toolbar.selection==ERASER){
+                        // Show nothing
+                    }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
                         // show currently selected tile item
                         TIC.print("not enough",x+17,y+6,3,false,1,true)
                     }else{
@@ -1397,10 +1407,12 @@ class MainState is State {
                         TIC.print("l.click:place/rotate",x+17,y+6,3,false,1,true)
                     }
                 }else {
-                    if(_map.availableGates[_map.toBaseGate(useritem)]!=null){
+                    if(_toolbar.selection==ERASER){
+                        TIC.print("l.click:erase",x+17,y+6,3,false,1,true)
+                    }else if(_map.availableGates[_map.toBaseGate(useritem)]!=null){
                         // Rotate/remove item under cursor
                         TIC.print("l.click:rotate",x+17,y+2,3,false,1,true)
-                        TIC.print("r.click:remove",x+17,y+9,3,false,1,true)
+                        TIC.print("r.click:erase",x+17,y+9,3,false,1,true)
                     }
                 }
                 TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
@@ -2396,6 +2408,7 @@ class Job is GameObject {
 // 019:9999999999900999990300099033330990333309990300099990099999999999
 // 020:9999999999900999990330999033330990033009990330999900009999999999
 // 021:9999999999000099990330999003300990333309990330999990099999999999
+// 022:9992299999211299921111292331110913331099913309999900000999999999
 // 032:9000009905225509052255090555550905333509053335099000009999999999
 // 033:9990809990080099088088090ffff0990dddd099077777090aaaaa0990505099
 // 034:9000099901221099023e209902ee209901221f099000cdf099990c0999999099
