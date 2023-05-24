@@ -7,7 +7,6 @@
 // script:  wren
 // saveid:  continuous-factory
 // pal:     system-mini-16
-// input:   mouse
 
 import "random" for Random
 
@@ -587,6 +586,72 @@ class ChunkyFont {
 
 ChunkyFont.init_()
 
+var MOUSESPEED=1.5
+var CURSORPOINT=1
+var CURSORHAND=2
+
+class Mouse {
+    construct new(speed){
+        _speed=speed
+        _mouse=TIC.mouse()
+        _prev=_mouse
+        _mx=_mouse[0]
+        _my=_mouse[1]
+        _mxp=_mouse[0]
+        _myp=_mouse[1]
+        _cursor=CURSORPOINT
+    }
+
+    mouse{_mouse}
+    x{_mouse[0]}
+    y{_mouse[1]}
+    left{_mouse[2]}
+    right{_mouse[4]}
+    moved{_mouse[0]!=_prev[0]||_mouse[1]!=_prev[1]}
+    leftp{left&&!_prev[2]}
+    rightp{right&&!_prev[4]}
+    cursor=(value){_cursor=value}
+
+    update(){
+        _prev=_mouse
+        _mxp=_mx
+        _myp=_my
+        _mouse=TIC.mouse()
+        _mx=_mouse[0]
+        _my=_mouse[1]
+        if(_mx==_mxp&&_my==_myp){
+            // Mouse did not move, use existing mouse position
+            _mouse[0]=_prev[0]
+            _mouse[1]=_prev[1]
+            if(TIC.btn(BTN_UP)){
+                _mouse[1]=(_mouse[1]-_speed).max(0)
+            }else if(TIC.btn(BTN_DOWN)){
+                _mouse[1]=(_mouse[1]+_speed).min(HEIGHT)
+            }
+            if(TIC.btn(BTN_LEFT)){
+                _mouse[0]=(_mouse[0]-_speed).max(0)
+            }else if(TIC.btn(BTN_RIGHT)){
+                _mouse[0]=(_mouse[0]+_speed).min(WIDTH)
+            }
+        }
+        if(TIC.btn(BTN_A)){
+            _mouse[2]=true
+        }
+        if(TIC.btn(BTN_B)){
+            _mouse[4]=true
+        }
+        TIC.poke(0x3FFB,0)  // hide cursor
+    }
+
+    draw(){
+        if(_cursor!=0){
+            TIC.spr(_cursor,x,y,0)
+        }
+    }
+}
+
+var MOUSE=Mouse.new(MOUSESPEED)
+
 class Button {
     x { _x }
     x=(value) { _x=value }
@@ -642,22 +707,18 @@ class Button {
   }
  
   update() {
-    var mouse=TIC.mouse()
-    var mx=mouse[0]
-    var my=mouse[1]
-    var left=mouse[2]
-    _hover=mx>=_x && mx<=_x+_width && my>=_y && my<=_y+_height
+    _hover=MOUSE.x>=_x && MOUSE.x<=_x+_width && MOUSE.y>=_y && MOUSE.y<=_y+_height
     // Change cursor: hand
     if (_hover){
-      TIC.poke(0x3FFB,129)
+        MOUSE.cursor=CURSORHAND
     }
     // Clicking on press
     _clicked=false
-    if (!left && _hover && _wasHover && _wasDown){
+    if (!MOUSE.left && _hover && _wasHover && _wasDown){
       _clicked=true
     }
     _wasHover=_hover
-    _wasDown=left
+    _wasDown=MOUSE.left
   }
 
   reset(){
@@ -721,6 +782,7 @@ class State {
     }
 	update() {
 		_tt=_tt+1
+        MOUSE.update()
     }
 
 	finish() {
@@ -732,7 +794,7 @@ class State {
     }
 
 	draw() {
-        return
+        MOUSE.draw()
     }
 
     drawWindow(x,y,w,h) {
@@ -804,7 +866,6 @@ class SplashState is SkipState {
     }
 
 	draw() {
-		super.draw()
 		TIC.cls(COLOR_BG)
 		var tx=null
 		for (text in _texts) {
@@ -820,6 +881,7 @@ class SplashState is SkipState {
 		if (tt>5.8*MUSBEATTICKS) {
 			drawface(170,36)
         }
+		super.draw()
     }
 
 	drawface(x,y) {
@@ -846,12 +908,12 @@ class LevelButton is LabelButton{
 
 class TitleState is State {
 	construct new() {
+		super()
         _startbtn=LabelButton.new(80,HEIGHT-45,78,20,"START",0,2,3,1)
         _continuebtn=null
         _creditsbtn=LabelButton.new(85,HEIGHT-18,60,7,"",0,0,0,0)
         _idlecounter=IDLETICKS
         _levelselecting=false
-        _mouse=TIC.mouse()
     }
 
     idlestate { _idlestate }
@@ -924,9 +986,7 @@ class TitleState is State {
                 _continuebtn.update()
             }
             _creditsbtn.update()
-            var mousePrev=_mouse
-            _mouse=TIC.mouse()
-            if(_mouse[0]==mousePrev[0]&&_mouse[1]==mousePrev[1]){
+            if(!MOUSE.moved){
                 _idlecounter=_idlecounter-1
             }else{
                 _idlecounter=IDLETICKS
@@ -940,7 +1000,6 @@ class TitleState is State {
     }
 
     draw() {
-        super.draw()
         TIC.cls(0)
         var x=34
         var y=5
@@ -968,6 +1027,7 @@ class TitleState is State {
             }
             _backbtn.draw()
         }
+        super.draw()
     }
 
     printShadow(text,x,y,color,shadow,scale,small){
@@ -1181,9 +1241,9 @@ class Toolbar {
 
 class MainState is State {
     construct new() {
+		super()
         _map=null
         _buildPhase=true
-        _mouse=TIC.mouse()
         _toolbar=null
         _userDir=RIGHT
         _startbtn=null
@@ -1226,9 +1286,6 @@ class MainState is State {
     update() {
         super.update()
 
-        var mousePrev=_mouse
-        _mouse=TIC.mouse()
-
         if (_buildPhase){
             _startbtn.update()
             _resetbtn.update()
@@ -1246,13 +1303,9 @@ class MainState is State {
                 _map.softreset(true)
                 _toolbar=Toolbar.new(_map.availableGates)
             }else{
-                _mouseX=_mouse[0]
-                _mouseY=_mouse[1]
-                _mouseClick=_mouse[2]
-                _mouseRightClick=_mouse[4]
-                if(!_mouseClick&&mousePrev[2]) {
-                    var tileX=(_mouseX/16).floor
-                    var tileY=(_mouseY/16).floor
+                var tileX=(MOUSE.x/16).floor
+                var tileY=(MOUSE.y/16).floor
+                if(MOUSE.leftp) {
                     if(_map.isInBounds(tileX,tileY)){
                         var existingBelt=_map.getConveyorBelt(tileX,tileY)
                         var existingGate=_map.getGate(tileX,tileY)
@@ -1296,10 +1349,7 @@ class MainState is State {
                     }
                 }
 
-                if(!_mouseRightClick&&mousePrev[4]) {
-                    var tileX=(_mouseX/16).floor
-                    var tileY=(_mouseY/16).floor
-
+                if(MOUSE.rightp) {
                     if(_map.tryRemoveUserItem(tileX,tileY)){
                         TIC.sfx(SFXNEXT)
                     }
@@ -1388,8 +1438,8 @@ class MainState is State {
         _map.draw()
 
         if(_buildPhase){
-            var tileX=(_mouseX/16).floor
-            var tileY=(_mouseY/16).floor
+            var tileX=(MOUSE.x/16).floor
+            var tileY=(MOUSE.y/16).floor
             if(_map.isInBounds(tileX,tileY)){
                 var x=tileX*16
                 var y=tileY*16
@@ -1448,6 +1498,7 @@ class MainState is State {
             TIC.print("Folders:%(_map.jobsDone)/%(_map.jobsCount)",WIDTH-56,3,0,false,1,true)
         }
         _backbtn.draw()
+		super.draw()
     }
 }
 
@@ -1521,7 +1572,6 @@ class WinState is State {
     }
 
 	draw() {
-        super.draw()
 		TIC.cls(COLOR_BG)
         var x=20
         var y=40
@@ -1543,11 +1593,13 @@ class WinState is State {
             }
         }
         _nextbtn.draw()
+        super.draw()
     }
 }
 
 class HelpState is State {
 	construct new() {
+		super()
         _read=false
         _startbtn=LabelButton.new(95,HEIGHT-20,50,9,"START",0,2,3,1)
     }
@@ -1572,11 +1624,11 @@ class HelpState is State {
     }
 
     update() {
+        super.update()
         _startbtn.update()
     }
 
 	draw() {
-		super.draw()
 		TIC.cls(COLOR_BG)
         var x=30
         var y=5
@@ -1607,6 +1659,7 @@ class HelpState is State {
         y=y+fh*2
 		TIC.print("Good luck and SYNERGIZE!",x,y,0,false,1,true)
         _startbtn.draw()
+		super.draw()
     }
 }
 
@@ -1622,16 +1675,16 @@ class StarState is State{
 		    TIC.music(MUSGAME,-1,-1,true)
             MUSGAMEPLAYING=true
         }
+        MOUSE.cursor=0
     }
 
     finish(){
         super.finish()
-        TIC.poke(0x3FFB,128)  // show cursor
+        MOUSE.cursor=CURSORPOINT
     }
 
     next(){
-        var mouse=TIC.mouse()
-        if(mouse[2]){
+        if(MOUSE.leftp){
             TIC.sfx(SFXNEXT)
             finish()
             nextstate.reset()
@@ -1644,10 +1697,11 @@ class StarState is State{
         TIC.cls(0)
         _stargen.draw()
         _job.draw()
+		super.draw()
     }
 
     update() {
-        TIC.poke(0x3FFB,0)  // hide cursor
+        super.update()
         _stargen.update()
         _job.update()
     }
@@ -2402,6 +2456,8 @@ class Job is GameObject {
 
 // <TILES>
 // 000:5555555555555555555555555555555555555555555555555555555555555555
+// 001:1100000013100000133100001333100013333100132210001112100000011000
+// 002:0111000001310000013111001132331012333321123333210133331000111100
 // 016:00000000000000000f0f00f00f0ff0f00f0f0ff00f0f00f00f0f00f000000000
 // 017:0000000000000000090809999098089090980890909808900908889000000000
 // 018:9999999999900999900030999033330990333309900030999990099999999999
