@@ -945,23 +945,25 @@ class TitleState is State {
 			nextstate.reset()
 			return nextstate
         }
-        if(_continuebtn.clicked){
-            _levelselecting=true
-            _continuebtn.reset()
-            TIC.sfx(SFXNEXT)
-        }
-        for(btn in _levelselectbtns){
-            if(btn.clicked){
-                LEVEL=btn.level
-                finish()
-                nextstate.reset()
-                return nextstate
+        if(_continuebtn){
+            if(_continuebtn.clicked){
+                _levelselecting=true
+                _continuebtn.reset()
+                TIC.sfx(SFXNEXT)
             }
-        }
-        if(_backbtn.clicked){
-            _levelselecting=false
-            _backbtn.reset()
-            TIC.sfx(SFXNEXT)
+            for(btn in _levelselectbtns){
+                if(btn.clicked){
+                    LEVEL=btn.level
+                    finish()
+                    nextstate.reset()
+                    return nextstate
+                }
+            }
+            if(_backbtn.clicked){
+                _levelselecting=false
+                _backbtn.reset()
+                TIC.sfx(SFXNEXT)
+            }
         }
         if(_idlecounter<=0||_creditsbtn.clicked){
             _creditsbtn.reset()
