@@ -110,6 +110,60 @@ var COLORS=[3,2,1,0]
 var SPEEDMIN=0.001
 var SPEEDMAX=0.02
 
+class Utils {
+    static rot(x,y,ca,sa){
+        return [x*ca-y*sa,x*sa+y*ca]
+    }
+    static aspr(id,x,y,colorkey,sx,sy,flip,rotate,w,h,ox,oy,shx1,shy1,shx2,shy2){
+        // Draw a sprite using two textured triangles.
+        // Apply affine transformations: scale, shear, rotate, flip
+
+        // scale / flip
+        if((flip%2)==1){
+            sx=-sx
+        }
+        if(flip>=2){
+            sy=-sy
+        }
+        ox=ox*-sx
+        oy=oy*-sy
+        // shear / rotate
+        shx1=shx1*-sx
+        shy1=shy1*-sy
+        shx2=shx2*-sx
+        shy2=shy2*-sy
+        var rr=rotate*Num.pi/180
+        var sa=rr.sin
+        var ca=rr.cos
+        var r1=rot(ox+shx1,oy+shy1,ca,sa)
+        var r2=rot(w*8*sx+ox+shx1,oy+shy2,ca,sa)
+        var r3=rot(ox+shx2,h*8*sy+oy+shy1,ca,sa)
+        var r4=rot(w*8*sx+ox+shx2,h*8*sy+oy+shy2,ca,sa)
+        var x1 = x + r1[0]
+        var y1 = y + r1[1]
+        var x2 = x + r2[0]
+        var y2 = y + r2[1]
+        var x3 = x + r3[0]
+        var y3 = y + r3[1]
+        var x4 = x + r4[0]
+        var y4 = y + r4[1]
+        // UV coords
+        var u1=(id%16)*8
+        var v1=(id/16).floor*8
+        var u2=u1+w*8
+        var v2=v1+h*8
+
+        TIC.ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v1,u1,v2,0,colorkey)
+        TIC.ttri(x3,y3,x4,y4,x2,y2,u1,v2,u2,v2,u2,v1,0,colorkey)
+    }
+
+    static easeOutBack(x){
+        var c1=1.70158
+        var c3=c1+1
+        return 1+c3*(x-1).pow(3)+c1*(x-1).pow(2)
+    }
+}
+
 class Star {
     construct new(){
         _x=WIDTH/2
@@ -827,7 +881,7 @@ class SkipState is State {
     canSkip {tt>_grace}
 
 	next() {
-        if (canSkip && (TIC.btnp(0) || TIC.btnp(1) || TIC.btnp(2) || TIC.btnp(3) || TIC.btnp(4) || TIC.btnp(5) || TIC.btnp(6) || TIC.btnp(7))) {
+        if (canSkip && (MOUSE.leftp||MOUSE.rightp)) {
 			finish()
 			nextstate.reset()
 			return nextstate
@@ -2243,10 +2297,8 @@ class GameMap {
 
         var job=_inTile.update()
         if(job!=null){
-            job.x=_inTile.x/16
-            job.y=_inTile.y/16
+            job.spawn(_inTile)
             _jobs.add(job)
-            TIC.sfx(SFXSPAWN)
         }
 
         if(jobMoved || job!=null) {
@@ -2364,8 +2416,7 @@ class Job is GameObject {
         _ticks=0
         _moving=true
         _blocked=false
-        _spawning=true
-        _r=0
+        _spawning=false
     }
     dx{_dx}
     dy{_dy}
@@ -2381,12 +2432,13 @@ class Job is GameObject {
         var d=(_moving&&!_blocked)?1-_ticks*1.0/CONVEYOR_TICKS:0
         var drawx=(x+_dx*d*d)*16
         var drawy=(y+_dy*d*d)*16
-        TIC.spr(352,drawx-4,drawy-4,COLOR_KEY,1,0,_r,3,3)
+        var s=_spawning&&d<0.5?Utils.easeOutBack(d*2):1
+        Utils.aspr(352,drawx-4+8,drawy-4+8,COLOR_KEY,s,s,0,0,3,3,8,8,0,0,0,0)
         if(isComplete){
             TIC.spr(355,drawx,drawy,0,1,0,0,2,2)
         }
         for (task in _tasks) {
-            TIC.spr(task.key,drawx,drawy,COLOR_KEY)
+            Utils.aspr(task.key,drawx+4,drawy+4,COLOR_KEY,s,s,0,0,1,1,4,4,0,0,0,0)
             if(task.value>1) {
                 TIC.print("x%(task.value)",drawx+9,drawy+2,0,false,1,true)
             }
@@ -2398,11 +2450,13 @@ class Job is GameObject {
         if(_ticks>0){
             _ticks=_ticks-1
         }
-        if(_spawning){
-            _r=(_ticks/5).floor%4
-        }else{
-            _r=0
-        }
+    }
+
+    spawn(intile){
+        x=intile.x/16
+        y=intile.y/16
+        TIC.sfx(SFXSPAWN)
+        _spawning=true
     }
 
     // Actually move this job
