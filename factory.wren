@@ -2432,8 +2432,8 @@ class Job is GameObject {
         var d=(_moving&&!_blocked)?1-_ticks*1.0/CONVEYOR_TICKS:0
         var drawx=(x+_dx*d*d)*16
         var drawy=(y+_dy*d*d)*16
-        var s=_spawning&&d<0.5?Utils.easeOutBack(d*2):1
-        Utils.aspr(352,drawx-4+8,drawy-4+8,COLOR_KEY,s,s,0,0,3,3,8,8,0,0,0,0)
+        var s=_spawning&&d<0.5?Utils.easeOutBack(d*2).pow(2):1
+        Utils.aspr(352,drawx-4+8,drawy-4+24,COLOR_KEY,s,s,0,0,3,3,8,24,0,0,0,0)
         if(isComplete){
             TIC.spr(355,drawx,drawy,0,1,0,0,2,2)
         }
