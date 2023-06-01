@@ -2156,6 +2156,8 @@ class GameMap {
     }
 
     addGate(x,y,tileId) {
+        var currentTile=getTileId(x,y)
+        if(!_userTiles.contains(currentTile)) return
         if (_availableGates[tileId] > 0) {
             updateGateCount(tileId,-1)
             _gates[x][y]=Gate.new(x,y,tileId)
