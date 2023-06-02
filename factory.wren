@@ -641,8 +641,10 @@ class ChunkyFont {
 ChunkyFont.init_()
 
 var MOUSESPEED=1.5
-var CURSORPOINT=1
-var CURSORHAND=2
+var CURSORPOINT=[1,0,0]
+var CURSORHAND=[2,2,1]
+var CURSORNO=[3,3,3]
+var CURSORROTIDX=4
 
 class Mouse {
     construct new(speed){
@@ -653,7 +655,9 @@ class Mouse {
         _my=_mouse[1]
         _mxp=_mouse[0]
         _myp=_mouse[1]
-        _cursor=CURSORPOINT
+        _cursor=CURSORPOINT[0]
+        _dx=CURSORPOINT[1]
+        _dy=CURSORPOINT[2]
     }
 
     mouse{_mouse}
@@ -664,7 +668,11 @@ class Mouse {
     moved{_mouse[0]!=_prev[0]||_mouse[1]!=_prev[1]}
     leftp{left&&!_prev[2]}
     rightp{right&&!_prev[4]}
-    cursor=(value){_cursor=value}
+    cursor=(value){
+        _cursor=value[0]
+        _dx=value[1]
+        _dy=value[2]
+    }
 
     update(){
         _prev=_mouse
@@ -699,7 +707,7 @@ class Mouse {
 
     draw(){
         if(_cursor!=0){
-            TIC.spr(_cursor,x,y,0)
+            TIC.spr(_cursor,x-_dx,y-_dy,COLOR_KEY)
         }
     }
 }
@@ -836,6 +844,7 @@ class State {
     }
 	update() {
 		_tt=_tt+1
+        MOUSE.cursor=CURSORPOINT
         MOUSE.update()
     }
 
@@ -1412,6 +1421,26 @@ class MainState is State {
                         TIC.sfx(SFXNEXT)
                     }
                 }
+
+                // Set mouse cursor based on current tool
+                if(_map.isInBounds(tileX,tileY)){
+                    var useritem=_map.getTileId(tileX,tileY)
+                    if(useritem==0){
+                        if(_toolbar.selection==ERASER){
+                            // Show nothing
+                        }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
+                            MOUSE.cursor=CURSORNO
+                        }else{
+                            MOUSE.cursor=[_toolbar.selection,3,3]
+                        }
+                    }else{
+                        if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
+                            MOUSE.cursor=[ERASER,3,3]
+                        }else if(_map.isUserItem(tileX,tileY)){
+                            MOUSE.cursor=[((tt/10).floor%4)+CURSORROTIDX,3,3]
+                        }
+                    }
+                }
             }
         } else {
             _stopbtn.update()
@@ -1505,20 +1534,18 @@ class MainState is State {
                 // Show icon for current action
                 var useritem=_map.getTileId(tileX,tileY)
                 if(useritem==0){
-                    TIC.spr(_toolbar.selection,x+2,y+2,COLOR_KEY)
                     if(_toolbar.selection==ERASER){
                         // Show nothing
                     }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
                         // show currently selected tile item
                         TIC.print("not enough",x+17,y+6,3,false,1,true)
                     }else{
-                        TIC.spr(_toolbar.selection,x+2,y+2,COLOR_KEY)
                         TIC.print("l.click:place/rotate",x+17,y+6,3,false,1,true)
                     }
                 }else {
-                    if(_toolbar.selection==ERASER){
+                    if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
                         TIC.print("l.click:erase",x+17,y+6,3,false,1,true)
-                    }else if(_map.availableGates[_map.toBaseGate(useritem)]!=null){
+                    }else if(_map.isUserItem(tileX,tileY)){
                         // Rotate/remove item under cursor
                         TIC.print("l.click:rotate",x+17,y+2,3,false,1,true)
                         TIC.print("r.click:erase",x+17,y+9,3,false,1,true)
@@ -1734,7 +1761,7 @@ class StarState is State{
 		    TIC.music(MUSGAME,-1,-1,true)
             MUSGAMEPLAYING=true
         }
-        MOUSE.cursor=0
+        MOUSE.cursor=[0,0,0]
     }
 
     finish(){
@@ -2127,6 +2154,11 @@ class GameMap {
         return x>0&&y>0&&x<13&&y<7
     }
 
+    isUserItem(x,y){
+        var currentTile=getTileId(x,y)
+        return _userTiles.contains(currentTile)
+    }
+
     tryRemoveUserItem(x,y) {
         // Check out of bounds
         if(!isInBounds(x,y)){
@@ -2515,8 +2547,13 @@ class Job is GameObject {
 
 // <TILES>
 // 000:5555555555555555555555555555555555555555555555555555555555555555
-// 001:1100000013100000133100001333100013333100132210001112100000011000
-// 002:0111000001310000013111001132331012333321123333210133331000111100
+// 001:1099999903099999033099990333099903333099032209990012099999901999
+// 002:9101999990309999903000990032330902333320023333209033330999000099
+// 003:9900099990233099020233090320230903320209903320999900099999999999
+// 004:9330399932000399203039990393993939939309993030299300023999303399
+// 005:9933329993000039313200399399333993339999930023199300003999233399
+// 006:9993023993993023303993030003300030399303320399399320399999999999
+// 007:9999939993333139200393033003920330293003303930029319333999999999
 // 016:00000000000000000f0f00f00f0ff0f00f0f0ff00f0f00f00f0f00f000000000
 // 017:0000000000000000090809999098089090980890909808900908889000000000
 // 018:9999999999900999900030999033330990333309900030999990099999999999
