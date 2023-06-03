@@ -80,10 +80,9 @@ var HAMMER_GATE=85
 
 // JOB
 
-var JOB_SPAWN_TICKS=120
+var JOB_SPAWN_TICKS=104
 
-var CONVEYOR_TICKS=60
-var JOB_TICKS=90
+var MOVE_TICKS=50
 
 // Map data, for resetting
 var MAPRESETS=[]
@@ -725,7 +724,7 @@ class Button {
     wasDown=(value){_wasDown=value}
     hover { _hover }
     hover=(value){_hover=value}
-    clicked { _clicked }
+    clicked {_active&&_clicked}
     tooltip=(value){_tooltip=value}
     fillcolor{_fillcolor}
     fillcolor=(value){_fillcolor=value}
@@ -746,6 +745,7 @@ class Button {
     _hover=false
     _clicked=false
     _tooltip=null
+    _active=false
   }
 
   draw() {
@@ -769,12 +769,19 @@ class Button {
   }
  
   update() {
+    // Wait until mouse buttons released before allowing button interaction
+    if(!MOUSE.left&&!MOUSE.right){
+        _active=true
+    }
+    if(!_active){
+        return
+    }
     _hover=MOUSE.x>=_x && MOUSE.x<=_x+_width && MOUSE.y>=_y && MOUSE.y<=_y+_height
     // Change cursor: hand
     if (_hover){
         MOUSE.cursor=CURSORHAND
     }
-    // Clicking on press
+    // Clicking on release
     _clicked=false
     if (!MOUSE.left && _hover && _wasHover && _wasDown){
       _clicked=true
@@ -787,6 +794,7 @@ class Button {
     _wasHover=false
     _wasDown=false
     _clicked=false
+    _active=false
   }
 }
 
@@ -2063,7 +2071,7 @@ class GameMap {
             }
             var job = Job.new(0,0,0,0,tasks)
             job.moveRight()
-            job.ticks=CONVEYOR_TICKS
+            job.ticks=MOVE_TICKS
             _spawnJobs.add(job)
         }
         _jobsCount=_spawnJobs.count
@@ -2277,7 +2285,7 @@ class GameMap {
                 var tileId=TIC.mget(xstart+x,ystart+y)
                 if(tileId==IN_TILE){
                     job.moveRight()
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                 }else if(tileId==OUT_TILE){
                     _jobs.remove(job)
                     if (job.isComplete){
@@ -2291,28 +2299,28 @@ class GameMap {
                     return
                 }else if(tileId==CONV_R){
                     job.moveRight()
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                 }else if(tileId==CONV_L){
                     job.moveLeft()
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                 }else if(tileId==CONV_U){
                     job.moveUp()
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                 }else if(tileId==CONV_D){
                     job.moveDown()
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                 }else if(tileId==DISK||tileId==APPLE||tileId==GLASS||tileId==WIN||tileId==LINUX||tileId==HAMMER){
                     if(job.containsTask(tileId)){
                         job.doTask(tileId)
-                        job.ticks=JOB_TICKS
+                        job.ticks=MOVE_TICKS
                         TIC.sfx(SFXDOTASK)
                     }else{
-                        job.ticks=CONVEYOR_TICKS
+                        job.ticks=MOVE_TICKS
                         job.moving=true
                     }
                 }else if(_gates[x][y]!=null){
                     var gate=_gates[x][y]
-                    job.ticks=CONVEYOR_TICKS
+                    job.ticks=MOVE_TICKS
                     if(gate.passes(job)){
                         job.moveDir(gate.trueDir)
                     }else{
@@ -2463,7 +2471,7 @@ class Job is GameObject {
     moving=(value){_moving=value}
 
     draw() {
-        var d=(_moving&&!_blocked)?1-_ticks*1.0/CONVEYOR_TICKS:0
+        var d=(_moving&&!_blocked)?1-_ticks*1.0/MOVE_TICKS:0
         var drawx=(x+_dx*d*d)*16
         var drawy=(y+_dy*d*d)*16
         var s=_spawning&&d<0.5?Utils.easeOutBack(d*2).pow(2):1
