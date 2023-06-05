@@ -676,6 +676,8 @@ class Mouse {
         _cursor=CURSORPOINT[0]
         _dx=CURSORPOINT[1]
         _dy=CURSORPOINT[2]
+        _tooltip=""
+        _tooltipticks=0
     }
 
     mouse{_mouse}
@@ -690,6 +692,13 @@ class Mouse {
         _cursor=value[0]
         _dx=value[1]
         _dy=value[2]
+    }
+
+    setTooltip(value){
+        if(_tooltip!=value){
+            _tooltip=value
+            _tooltipticks=0
+        }
     }
 
     update(){
@@ -720,12 +729,20 @@ class Mouse {
         if(TIC.btn(BTN_B)){
             _mouse[4]=true
         }
+        _tooltipticks=_tooltipticks+1
         TIC.poke(0x3FFB,0)  // hide cursor
     }
 
     draw(){
         if(_cursor!=0){
             TIC.spr(_cursor,x-_dx,y-_dy,COLOR_KEY)
+        }
+        var tooltiplen=((_tooltipticks-60)/3).floor.min(_tooltip.count-1)
+        if(tooltiplen>0){
+            var s=_tooltip[0..tooltiplen]
+            var len=TIC.print(s,WIDTH,HEIGHT,0,false,1,true)
+            TIC.rect(x-_dx+5,y-_dy+6,len+1,6,3)
+            TIC.print(s,x-_dx+6,y-_dy+6,0,false,1,true)
         }
     }
 }
@@ -1558,24 +1575,34 @@ class MainState is State {
             if(_map.isInBounds(tileX,tileY)){
                 var x=tileX*16
                 var y=tileY*16
-                // Show icon for current action
-                var useritem=_map.getTileId(tileX,tileY)
-                if(useritem==0){
-                    if(_toolbar.selection==ERASER){
-                        // Show nothing
-                    }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
-                        // show currently selected tile item
-                        TIC.print("not enough",x+17,y+6,3,false,1,true)
-                    }else{
-                        TIC.print("l.click:place/rotate",x+17,y+6,3,false,1,true)
-                    }
-                }else {
-                    if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
-                        TIC.print("l.click:erase",x+17,y+6,3,false,1,true)
-                    }else if(_map.isUserItem(tileX,tileY)){
-                        // Rotate/remove item under cursor
-                        TIC.print("l.click:rotate",x+17,y+2,3,false,1,true)
-                        TIC.print("r.click:erase",x+17,y+9,3,false,1,true)
+                // Set tooltip for current selection
+                if(LEVEL<TRICKY_LEVELS){
+                    var useritem=_map.getTileId(tileX,tileY)
+                    if(useritem==0){
+                        if(_toolbar.selection==ERASER){
+                            // Show nothing
+                            MOUSE.setTooltip("")
+                        }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
+                            // show currently selected tile item
+                            MOUSE.setTooltip("not enough")
+                        }else{
+                            MOUSE.setTooltip("place")
+                        }
+                    }else {
+                        if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
+                            MOUSE.setTooltip("erase")
+                        }else if(_map.isUserItem(tileX,tileY)){
+                            // Rotate/remove item under cursor
+                            MOUSE.setTooltip("rotate/erase")
+                        }else if(useritem==IN_TILE){
+                            MOUSE.setTooltip("source")
+                        }else if(useritem==OUT_TILE){
+                            MOUSE.setTooltip("sink")
+                        }else if(useritem==DISK||useritem==APPLE||useritem==GLASS||useritem==WIN||useritem==LINUX||useritem==HAMMER){
+                            MOUSE.setTooltip("factory")
+                        }else{
+                            MOUSE.setTooltip("")
+                        }
                     }
                 }
                 TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
