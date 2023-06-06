@@ -180,6 +180,21 @@ class Utils {
     static mapY(){
         return (LEVEL_MAP[LEVEL]/8).floor*MAP_H
     }
+
+    static drawWindow(x,y,w,h) {
+        TIC.rectb(x,y,w,h,0)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rectb(x,y,w-1,h-1,3)
+        TIC.rectb(x+1,y+1,w-1,h-1,1)
+        x=x+1
+        y=y+1
+        w=w-2
+        h=h-2
+        TIC.rect(x,y,w,h,2)
+    }
 }
 
 class Star {
@@ -741,8 +756,9 @@ class Mouse {
         if(tooltiplen>0){
             var s=_tooltip[0..tooltiplen]
             var len=TIC.print(s,WIDTH,HEIGHT,0,false,1,true)
-            TIC.rect(x-_dx+5,y-_dy+6,len+1,6,3)
-            TIC.print(s,x-_dx+6,y-_dy+6,0,false,1,true)
+            var drawx=(x-_dx+5).min(WIDTH-(len+1))
+            TIC.rect(drawx,y-_dy+6,len+1,6,3)
+            TIC.print(s,drawx+1,y-_dy+6,0,false,1,true)
         }
     }
 }
@@ -799,9 +815,6 @@ class Button {
         }
     }
     TIC.rect(x+2,y+2,width-4,height-4,fc)
-    if(_hover&&_tooltip){
-        TIC.print(_tooltip,x-40,y+3,_bordercolor,false,1,true)
-    }
   }
  
   update() {
@@ -816,6 +829,9 @@ class Button {
     // Change cursor: hand
     if (_hover){
         MOUSE.cursor=CURSORHAND
+        if(_tooltip){
+            MOUSE.setTooltip(_tooltip)
+        }
     }
     // Clicking on release
     _clicked=false
@@ -902,21 +918,6 @@ class State {
 
 	draw() {
         MOUSE.draw()
-    }
-
-    drawWindow(x,y,w,h) {
-        TIC.rectb(x,y,w,h,0)
-        x=x+1
-        y=y+1
-        w=w-2
-        h=h-2
-        TIC.rectb(x,y,w-1,h-1,3)
-        TIC.rectb(x+1,y+1,w-1,h-1,1)
-        x=x+1
-        y=y+1
-        w=w-2
-        h=h-2
-        TIC.rect(x,y,w,h,2)
     }
 }
 
@@ -1116,7 +1117,7 @@ class TitleState is State {
         var y=5
         var w=172
         var h=130
-        drawWindow(x,y,w,h)
+        Utils.drawWindow(x,y,w,h)
         if(!_levelselecting){
             y=y+3
             TIC.spr(268,x+60,y,2,2,0,0,4,3)
@@ -1301,10 +1302,23 @@ class Toolbar {
 
     selection=(value){_selection=value}
     selection{_selection}
+    hover{MOUSE.x>=_x&&MOUSE.x<_x+_w&&MOUSE.y>=_y&&MOUSE.y<_y+_h}
+    hoverbutton(){
+        for(button in _buttons){
+            if(button.value.hover){
+                return button.value
+            }
+        }
+        return null
+    }
 
     construct new(availableGates) {
-        var xpos=(MAP_W-2)*8+2
-        var ypos=16
+        _x=WIDTH-20
+        _y=13
+        _w=25
+        _h=HEIGHT-35
+        var xpos=_x+6
+        var ypos=_y+3
         var dy=13
         _buttons={
             CONV_R: ToolbarButton.new(CONV_R,availableGates,xpos,ypos,"conv.belt"),
@@ -1316,7 +1330,7 @@ class Toolbar {
                 ypos=ypos+dy
             }
         }
-        _buttons[ERASER]=ToolbarButton.new(ERASER,{},xpos,HEIGHT-37,"erase")
+        _buttons[ERASER]=ToolbarButton.new(ERASER,{},xpos,_y+_h-15,"erase")
 
         _selection=CONV_R
     }
@@ -1336,6 +1350,7 @@ class Toolbar {
     }
 
     draw() {
+        Utils.drawWindow(_x,_y,_w,_h)
         for (button in _buttons) {
             var oldhover=button.value.hover
             var oldwasdown=button.value.wasDown
@@ -1484,6 +1499,37 @@ class MainState is State {
                             MOUSE.cursor=[((tt/10).floor%4)+CURSORROTIDX,3,3]
                         }
                     }
+                    // Set tooltip for current selection
+                    if(LEVEL<TRICKY_LEVELS){
+                        if(useritem==0){
+                            if(_toolbar.selection==ERASER){
+                                // Show nothing
+                                MOUSE.setTooltip("")
+                            }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
+                                // show currently selected tile item
+                                MOUSE.setTooltip("not enough")
+                            }else{
+                                MOUSE.setTooltip("place")
+                            }
+                        }else{
+                            if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
+                                MOUSE.setTooltip("erase")
+                            }else if(_map.isUserItem(tileX,tileY)){
+                                // Rotate/remove item under cursor
+                                MOUSE.setTooltip("rotate/erase")
+                            }else if(useritem==IN_TILE){
+                                MOUSE.setTooltip("source")
+                            }else if(useritem==OUT_TILE){
+                                MOUSE.setTooltip("sink")
+                            }else if(useritem==DISK||useritem==APPLE||useritem==GLASS||useritem==WIN||useritem==LINUX||useritem==HAMMER){
+                                MOUSE.setTooltip("factory")
+                            }else{
+                                MOUSE.setTooltip("")
+                            }
+                        }
+                    }
+                }else if(_toolbar.hoverbutton()==null){
+                    MOUSE.setTooltip("")
                 }
             }
         } else {
@@ -1575,47 +1621,17 @@ class MainState is State {
             if(_map.isInBounds(tileX,tileY)){
                 var x=tileX*16
                 var y=tileY*16
-                // Set tooltip for current selection
-                if(LEVEL<TRICKY_LEVELS){
-                    var useritem=_map.getTileId(tileX,tileY)
-                    if(useritem==0){
-                        if(_toolbar.selection==ERASER){
-                            // Show nothing
-                            MOUSE.setTooltip("")
-                        }else if(_map.availableGates[_map.toBaseGate(_toolbar.selection)]==0){
-                            // show currently selected tile item
-                            MOUSE.setTooltip("not enough")
-                        }else{
-                            MOUSE.setTooltip("place")
-                        }
-                    }else {
-                        if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
-                            MOUSE.setTooltip("erase")
-                        }else if(_map.isUserItem(tileX,tileY)){
-                            // Rotate/remove item under cursor
-                            MOUSE.setTooltip("rotate/erase")
-                        }else if(useritem==IN_TILE){
-                            MOUSE.setTooltip("source")
-                        }else if(useritem==OUT_TILE){
-                            MOUSE.setTooltip("sink")
-                        }else if(useritem==DISK||useritem==APPLE||useritem==GLASS||useritem==WIN||useritem==LINUX||useritem==HAMMER){
-                            MOUSE.setTooltip("factory")
-                        }else{
-                            MOUSE.setTooltip("")
-                        }
-                    }
-                }
                 TIC.spr(494,x,y,COLOR_KEY,1,0,0,2,2)
             }
         }
         // Set border color
         TIC.vbank(0)
         TIC.poke(0x03FF8,_buildPhase?0:9)
-        drawWindow(-2,-2,WIDTH+4,14)
+        Utils.drawWindow(-2,-2,WIDTH+4,14)
         TIC.print("Level:%(LEVEL+1)",2,3,0,false,1)
 
         // Draw next jobs window
-        drawWindow(2,HEIGHT-20,WIDTH-4,19)
+        Utils.drawWindow(2,HEIGHT-20,WIDTH-4,19)
         TIC.print("Next:",5,HEIGHT-15,0,false,1,true)
         var jx=1.6
         _map.spawnJobs.each{|job|
@@ -1629,8 +1645,6 @@ class MainState is State {
             TIC.print("Build Phase",WIDTH-54,3,0,false,1,true)
             _startbtn.draw()
             _resetbtn.draw()
-            // Toolbar window bg
-            drawWindow(WIDTH-20,13,25,HEIGHT-35)
             _toolbar.draw()
         }else{
             _stopbtn.draw()
@@ -1717,7 +1731,7 @@ class WinState is State {
         var y=40
         var w=200
         var h=55
-        drawWindow(x,y,w,h)
+        Utils.drawWindow(x,y,w,h)
         if(LEVEL+1==LEVEL_MAP.count){
             TIC.print("CONGRATULATIONS!",x+7,y+5,0,false,2)
             y=y+14
@@ -1775,7 +1789,7 @@ class HelpState is State {
         var w=180
         var h=125
         var fh=FONTH+2
-        drawWindow(x,y,w,h)
+        Utils.drawWindow(x,y,w,h)
 		TIC.print("README",x+35,y+3,0,false,3)
         x=x+3
         y=y+25
