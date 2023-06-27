@@ -1390,7 +1390,7 @@ class Toolbar {
         for (button in _buttons) {
             var oldhover=button.value.hover
             var oldwasdown=button.value.wasDown
-            if(_selection==button.key){
+            if(GameMap.toBaseGate(_selection)==button.key){
                 button.value.hover=true
                 button.value.wasDown=true
             }
@@ -1493,18 +1493,8 @@ class MainState is State {
                             } else if(_toolbar.selection==CONV_R) {
                                 _userDir=RIGHT
                                 _map.addConveyorBelt(tileX, tileY, RIGHT)
-                            } else if(_toolbar.selection==DISK_GATE) {
-                                _map.addGate(tileX,tileY,DISK_GATE)
-                            } else if(_toolbar.selection==APPLE_GATE) {
-                                _map.addGate(tileX,tileY,APPLE_GATE)
-                            } else if(_toolbar.selection==GLASS_GATE) {
-                                _map.addGate(tileX,tileY,GLASS_GATE)
-                            } else if(_toolbar.selection==WIN_GATE) {
-                                _map.addGate(tileX,tileY,WIN_GATE)
-                            } else if(_toolbar.selection==LINUX_GATE) {
-                                _map.addGate(tileX,tileY,LINUX_GATE)
-                            } else if(_toolbar.selection==HAMMER_GATE) {
-                                _map.addGate(tileX,tileY,HAMMER_GATE)
+                            } else if([DISK_GATE,APPLE_GATE,GLASS_GATE,WIN_GATE,LINUX_GATE,HAMMER_GATE].contains(GameMap.toBaseGate(_toolbar.selection))) {
+                                _map.addGate(tileX,tileY,_toolbar.selection)
                             }
                         }
                         TIC.sfx(SFXNEXT)
@@ -1512,7 +1502,9 @@ class MainState is State {
                 }
 
                 if(MOUSE.rightp) {
+                    var currentTile=_map.getTileId(tileX,tileY)
                     if(_map.tryRemoveUserItem(tileX,tileY)){
+                        _toolbar.selection=currentTile
                         TIC.sfx(SFXNEXT)
                     }
                 }
@@ -1523,7 +1515,7 @@ class MainState is State {
                     if(useritem==0){
                         if(_toolbar.selection==ERASER){
                             // Show nothing
-                        }else if(AVAILABLEGATES[LEVEL_MAP[LEVEL]][_map.toBaseGate(_toolbar.selection)]==0){
+                        }else if(AVAILABLEGATES[LEVEL_MAP[LEVEL]][GameMap.toBaseGate(_toolbar.selection)]==0){
                             MOUSE.cursor=CURSORNO
                         }else{
                             MOUSE.cursor=[_toolbar.selection,3,3]
@@ -1541,7 +1533,7 @@ class MainState is State {
                             if(_toolbar.selection==ERASER){
                                 // Show nothing
                                 MOUSE.setTooltip("")
-                            }else if(AVAILABLEGATES[LEVEL_MAP[LEVEL]][_map.toBaseGate(_toolbar.selection)]==0){
+                            }else if(AVAILABLEGATES[LEVEL_MAP[LEVEL]][GameMap.toBaseGate(_toolbar.selection)]==0){
                                 // show currently selected tile item
                                 MOUSE.setTooltip("not enough")
                             }else{
@@ -1551,7 +1543,7 @@ class MainState is State {
                             if(_toolbar.selection==ERASER&&_map.isUserItem(tileX,tileY)){
                                 MOUSE.setTooltip("erase")
                             }else if(_map.isUserItem(tileX,tileY)){
-                                // Rotate/remove item under cursor
+                                // Rotate/erase item under cursor
                                 MOUSE.setTooltip("rotate/erase")
                             }else if(useritem==IN_TILE){
                                 MOUSE.setTooltip("source")
@@ -2253,7 +2245,7 @@ class GameMap {
         return _conveyorBelts[x][y]
     }
 
-    toBaseGate(tileId){
+    static toBaseGate(tileId){
         if(tileId==CONV_R||tileId==CONV_L||tileId==CONV_U||tileId==CONV_D){
             return CONV_R
         }
@@ -2281,7 +2273,7 @@ class GameMap {
         }
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)||currentTile==EMPTY_TILE) return false
-        currentTile=toBaseGate(currentTile)
+        currentTile=GameMap.toBaseGate(currentTile)
         if(_conveyorBelts[x][y]!=null){
             // Removing belt
             _conveyorBelts[x][y]=null
@@ -2303,16 +2295,16 @@ class GameMap {
         tryRemoveUserItem(x,y)
         var currentTile=getTileId(x,y)
         if(!_userTiles.contains(currentTile)) return
-        tileId=toBaseGate(tileId)
-        if (AVAILABLEGATES[LEVEL_MAP[LEVEL]][tileId] > 0) {
-            updateGateCount(tileId,-1)
+        var baseGate=GameMap.toBaseGate(tileId)
+        if (AVAILABLEGATES[LEVEL_MAP[LEVEL]][baseGate] > 0) {
+            updateGateCount(baseGate,-1)
             _gates[x][y]=Gate.new(x,y,tileId)
             TIC.mset(Utils.mapX()+x,Utils.mapY()+y,tileId)
         }
     }
 
     updateGateCount(tileId,d){
-        tileId=toBaseGate(tileId)
+        tileId=GameMap.toBaseGate(tileId)
         if(AVAILABLEGATES[LEVEL_MAP[LEVEL]][tileId]!=null){
             AVAILABLEGATES[LEVEL_MAP[LEVEL]][tileId]=AVAILABLEGATES[LEVEL_MAP[LEVEL]][tileId]+d
         }
