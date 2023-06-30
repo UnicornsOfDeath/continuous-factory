@@ -3,7 +3,7 @@
 // desc:    Conveyor belt puzzle game
 // site:    https://github.com/UnicornsOfDeath/continuous-factory
 // license: MIT License
-// version: 0.3
+// version: 1,0
 // script:  wren
 // saveid:  continuous-factory
 // pal:     system-mini-16

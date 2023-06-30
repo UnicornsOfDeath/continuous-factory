@@ -6,4 +6,4 @@ A puzzle game made for [Ludum Dare 53](https://ldjam.com/events/ludum-dare/53/co
 
 Play online: <https://congusbongus.itch.io/continuous-factory>
 
-![Gameplay gif](https://raw.githubusercontent.com/UnicornsOfDeath/continuous-factory/main/video1.gif)
+![Gameplay gif](https://raw.githubusercontent.com/UnicornsOfDeath/continuous-factory/main/video.gif)
